@@ -1,0 +1,26 @@
+# Core API Integrations
+spotipy==2.25.1
+ytmusicapi==1.11.1
+
+# Terminal UI
+rich==14.3.3
+textual==8.0.2
+
+# Data & ML
+numpy==2.2.6
+pandas==2.3.3
+scikit-learn==1.8.0
+
+# Audio Playback
+python-mpv
+yt-dlp
+rapidfuzz
+
+# Networking
+speedtest-cli==2.1.3
+requests>=2.31.0
+
+# Utilities
+python-dotenv==1.2.1
+loguru==0.7.3
+langdetect==1.0.9

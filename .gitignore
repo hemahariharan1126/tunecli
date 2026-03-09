@@ -1,0 +1,25 @@
+# Sensitive Info
+.env
+.cache
+
+# Local Data
+cache/
+database/
+logs/
+mpv_temp/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+build/
+dist/
+
+# System
+.DS_Store
+Thumbs.db
