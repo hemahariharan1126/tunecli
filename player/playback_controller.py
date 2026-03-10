@@ -143,8 +143,13 @@ class PlaybackController:
             )
             
             if not recs:
-                # Silenced RADIO.ERR log
-                return
+                logging.warning("RADIO.ERR: No recommendations. Triggering bulletproof fallback.")
+                # Hard fallback to keep the queue alive
+                song = search_song("lofi chill beats official audio")
+                if song:
+                    self.queue_manager.add_song(song)
+                else:
+                    return
 
             for r in recs:
                 # Search and add each to queue

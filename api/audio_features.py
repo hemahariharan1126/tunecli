@@ -10,7 +10,14 @@ from config import SONG_FEATURES_CACHE
 
 class AudioFeatureService:
     def __init__(self):
-        self._spotify = SpotifyClient()
+        self.is_available = True
+        try:
+            self._spotify = SpotifyClient()
+        except Exception as e:
+            import logging
+            logging.warning(f"SpotifyClient disabled: {e}")
+            self.is_available = False
+        
         self._cache: dict = self._load_cache()
 
     def _load_cache(self) -> dict:
@@ -31,6 +38,9 @@ class AudioFeatureService:
         """
         if song_query in self._cache:
             return self._cache[song_query]
+
+        if not self.is_available:
+            return None
 
         track = self._spotify.search_song(song_query)
         if not track:

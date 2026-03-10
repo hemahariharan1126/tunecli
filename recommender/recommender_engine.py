@@ -117,6 +117,9 @@ class RecommenderEngine:
         """
         try:
             # 1. Get recommendations from Spotify
+            if not self._feature_service.is_available:
+                raise Exception("Spotify integration disabled (missing API keys).")
+                
             seed_data = self._feature_service.get_features(seed_query)
             if not seed_data or "id" not in seed_data:
                 raise Exception("Could not find seed track on Spotify.")
