@@ -15,6 +15,7 @@ from commands.help import help_command
 from commands.next import next_command
 from commands.prev import prev
 from commands.radio import radio
+from commands.find import find
 
 
 COMMAND_MAP = {
@@ -31,6 +32,7 @@ COMMAND_MAP = {
     "next": next_command,
     "prev": prev,
     "radio": radio,
+    "find": find,
 }
 
 

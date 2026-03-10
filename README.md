@@ -1,51 +1,52 @@
 <div align="center">
 
 # 🎵 TuneCLI
-### *Intelligent Terminal Music Player*
+### *The Ultimate AI-Driven Terminal Audio Engine*
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Rust](https://img.shields.io/badge/Rust-Compiled-orange.svg?style=flat-square&logo=rust)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
-[![MPV](https://img.shields.io/badge/Engine-MPV-orange?style=flat-square)](https://mpv.io/)
+[![MPV](https://img.shields.io/badge/Engine-MPV-purple.svg?style=flat-square)](https://mpv.io/)
 
-**TuneCLI** is a lightweight, AI-driven terminal music player designed for audiophiles who love the command line. It combines the power of YouTube Music with Spotify's intelligence to provide a seamless, mood-aware listening experience.
+**TuneCLI** is an ultra-fast, intelligent, and highly experimental terminal music environment built for developers, audiophiles, and terminal purists.
+
+By fusing **YouTube Music's vast library**, **Spotify's machine-learning audio features**, and **Rust-compiled Acoustic Fingerprinting**, TuneCLI delivers a seamless, mood-aware, and futuristic listening experience completely from the command line.
 
 </div>
 
 ---
 
-## ✨ Key Features
+## ✨ Engineering Highlights
 
-- 🎧 **Adaptive Streaming**: Automatically adjusts audio quality based on your network speed (High, Medium, Low).
-- 🧠 **AI Recommendations**: Leverages Spotify audio features and Cosine Similarity to suggest tracks you'll actually love.
-- 🎭 **Mood-Aware Filtering**: Instantly pivot your queue with mood filters like `sad`, `chill`, `party`, `focus`, or `romantic`.
-- 🌐 **Cross-Language Discovery**: Built-in heuristics to detect and filter music in multiple languages (English, Tamil, Hindi, etc.).
-- 💻 **Stunning Terminal UI**: A minimalist, high-refresh-rate interface powered by `Rich` and `Textual`.
+- 🎧 **Machine Learning & Audio Analysis**: Leverages Spotify's audio feature vectors and **Cosine Similarity** algorithms to curate mathematically perfect song transitions and recommendations based on track acoustics (valence, energy, tempo).
+- 🎙️ **Ambient Audio Fingerprinting**: Built-in Rust-powered acoustic recognition engine (`M!find`). Listen to your surroundings through your microphone, instantly identify the playing track via Shazam's hashing algorithms, and natively queue it or its nearest AI neighbors.
+- 🚀 **High-Performance Architecture**: 
+  - Asynchronous event loops for non-blocking I/O.
+  - Native `libmpv` hooks via ctypes for gapless playback without heavy unoptimized wrappers.
+  - Rust-compiled core dependencies (`shazamio-core`) for CPU-efficient signal processing.
+- 💻 **Stunning Terminal UI**: A high-refresh minimalist interface engineered using `Rich` for dynamic buffer rendering.
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start & Installation
 
 ### Prerequisites
-Make sure you have the following installed on your system:
-- **Python 3.10+**
-- **[MPV](https://mpv.io/)**: The core media engine.
-- **[FFmpeg](https://ffmpeg.org/)**: Required for audio processing.
+- **Python 3.10+** (Python 3.13 supported)
+- **Rust Toolchain (`Cargo`)**: Required for compiling the audio processing core.
+- **MPV Core**: Required for hardware-accelerated playback.
 
-### Installation
+### Setup
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/tunecli.git
+   git clone https://github.com/hemahariharan1126/tunecli.git
    cd tunecli
    ```
-2. Install dependencies:
+2. Install dependencies (this will automatically compile the Rust acoustic engines if pre-built wheels are unavailable on your architecture):
    ```bash
    pip install -r requirements.txt
    ```
-
-### Setup
-TuneCLI requires Spotify API credentials for its recommendation engine. 
-1. Create a `.env` file in the root directory.
-2. Add your credentials:
+3. Initialize API Secrets (Optional but recommended for ML Recommendations):
+   Create a `.env` file in the root directory.
    ```env
    SPOTIFY_CLIENT_ID='your_id'
    SPOTIFY_CLIENT_SECRET='your_secret'
@@ -53,39 +54,43 @@ TuneCLI requires Spotify API credentials for its recommendation engine.
 
 ---
 
-## ⌨️ Command Guide
+## ⌨️ Command Interface
 
-Interact with TuneCLI using simple commands prefixed with `M!`.
+Navigate TuneCLI using an intuitive, context-aware command parser prefixed with `M!`.
 
-| Command | Description |
+| Command | Feature |
 | :--- | :--- |
-| `M!play <query>` | Search and play a song from YouTube Music |
-| `M!pause` / `M!resume` | Control current playback |
-| `M!skip` / `M!prev` | Navigate your queue |
-| `M!queue` | View upcoming tracks |
-| `M!recommend` | Get AI-powered suggestions based on current track |
-| `M!mood <mood>` | Filter recommendations by mood |
-| `M!volume <0-100>` | Adjust system volume |
-| `M!radio <song>` | Start a radio station based on a song |
-| `M!help` | Discover more terminal secrets |
+| `M!find` | **[NEW] Ambient Recognition.** Records microphone audio, identifies the playing song, and allows instant native playback. |
+| `M!play <query>` | AI-assisted search and instant gapless playback. |
+| `M!recommend` | Computes acoustic vectors of the current track to fetch and queue its nearest Spotify neighbors. |
+| `M!mood <mood>` | Mutate the queue using semantic mood filters (`sad`, `chill`, `party`, `focus`). |
+| `M!radio <song>` | Infinite algorithmic generation of related tracks. |
+| `M!pause` / `M!resume` | Control playback lifecycle. |
+| `M!skip` / `M!prev` | Navigate the dynamic queue. |
+| `M!queue` | View the up-next state tree. |
+| `M!volume <0-100>` | Manipulate the MPV audio bus. |
+| `M!help` | Advanced command syntax. |
 
 ---
 
-## 🛠️ Project Structure
+## 🛠️ System Architecture
 
 ```text
 tunecli/
-├── api/            # Spotify & YTMusic API bridges
-├── commands/       # Terminal command implementations
-├── core/           # Core engine logic
-├── player/         # MPV controller & Queue management
-├── recommender/    # AI/ML logic for song matching
-├── ui/             # Rich-based terminal interface
-└── main.py         # Entry point
+├── api/            # Stateful HTTP clients (Spotify REST, YTMusic)
+├── commands/       # Pluggable CLI command handlers (Controller layer)
+├── core/           # State machines and configuration management
+├── parser/         # Lexical parsing and command dispatch routing
+├── player/         # libmpv abstractions and queue synchronization
+├── recommender/    # ML Vector processing for semantic/acoustic matching
+├── ui/             # Dynamic buffer logic for terminal rendering
+└── main.py         # Application Entrypoint & Event Loop
 ```
 
 ---
 
 <div align="center">
 Built with ❤️ for the terminal.
+<br>
+<i>Empowering developers to never leave the CLI for their music again.</i>
 </div>
