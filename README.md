@@ -19,6 +19,7 @@ By fusing **YouTube Music's vast library**, **Spotify's machine-learning audio f
 ## ✨ Engineering Highlights
 
 - 🎧 **Machine Learning & Audio Analysis**: Leverages Spotify's audio feature vectors and **Cosine Similarity** algorithms to curate mathematically perfect song transitions and recommendations based on track acoustics (valence, energy, tempo).
+- ✨ **LLM-Driven Scenario Soundtracking**: Integrates **Google Gemini 2.0** to analyze free-form user stories. Describe your situation (e.g., "Driving through the rain in Tokyo"), and TuneCLI will extract the mood, tone, and language to build a tailored 5-track scenario queue.
 - 🎙️ **Ambient Audio Fingerprinting**: Built-in Rust-powered acoustic recognition engine (`M!find`). Listen to your surroundings through your microphone, instantly identify the playing track via Shazam's hashing algorithms, and natively queue it or its nearest AI neighbors.
 - 🚀 **High-Performance Architecture**: 
   - Asynchronous event loops for non-blocking I/O.
@@ -45,11 +46,12 @@ By fusing **YouTube Music's vast library**, **Spotify's machine-learning audio f
    ```bash
    pip install -r requirements.txt
    ```
-3. Initialize API Secrets (Optional but recommended for ML Recommendations):
+3. Initialize API Secrets (Optional but recommended for AI Recommendations):
    Create a `.env` file in the root directory.
    ```env
    SPOTIFY_CLIENT_ID='your_id'
    SPOTIFY_CLIENT_SECRET='your_secret'
+   GEMINI_API_KEY='your_gemini_api_key'
    ```
 
 ---
@@ -61,6 +63,7 @@ Navigate TuneCLI using an intuitive, context-aware command parser prefixed with 
 | Command | Feature |
 | :--- | :--- |
 | `M!find` | **[NEW] Ambient Recognition.** Records microphone audio, identifies the playing song, and allows instant native playback. |
+| `M!scenario <story>`| **[NEW] Story-Based Soundtrack.** Describe your situation, and LLM-driven AI will build a matching queue. |
 | `M!play <query>` | AI-assisted search and instant gapless playback. |
 | `M!recommend` | Computes acoustic vectors of the current track to fetch and queue its nearest Spotify neighbors. |
 | `M!mood <mood>` | Mutate the queue using semantic mood filters (`sad`, `chill`, `party`, `focus`). |

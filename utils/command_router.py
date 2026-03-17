@@ -16,6 +16,7 @@ from commands.next import next_command
 from commands.prev import prev
 from commands.radio import radio
 from commands.find import find
+from commands.scenario import scenario
 
 
 COMMAND_MAP = {
@@ -33,6 +34,7 @@ COMMAND_MAP = {
     "prev": prev,
     "radio": radio,
     "find": find,
+    "scenario": scenario,
 }
 
 

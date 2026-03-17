@@ -12,6 +12,9 @@ SPOTIFY_CLIENT_ID: str = os.getenv("SPOTIFY_CLIENT_ID", "")
 SPOTIFY_CLIENT_SECRET: str = os.getenv("SPOTIFY_CLIENT_SECRET", "")
 SPOTIFY_REDIRECT_URI: str = os.getenv("SPOTIFY_REDIRECT_URI", "http://localhost:8888/callback")
 
+# ── Gemini (LLM) ─────────────────────────────────────────
+GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+
 # ── Audio Quality Thresholds (Mbps) ──────────────────────
 QUALITY_HIGH_THRESHOLD: float = 20.0
 QUALITY_MEDIUM_THRESHOLD: float = 10.0

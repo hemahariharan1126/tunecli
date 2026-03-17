@@ -27,6 +27,7 @@ def help_command(args):
         ("M!queue", "Visualize current track sequence"),
         ("M!mood <type>", "Bias search results by vibe"),
         ("M!recommend", "Extract similar tracks via AI"),
+        ("M!scenario <story>", "Soundtrack your situation via LLM"),
         ("M!volume <0-100>", "Adjust audio gain"),
         ("M!help", "Display this interface")
     ]

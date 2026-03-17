@@ -27,6 +27,7 @@ numpy
 # Networking
 speedtest-cli==2.1.3
 requests>=2.31.0
+google-generativeai
 
 # Utilities
 python-dotenv==1.2.1

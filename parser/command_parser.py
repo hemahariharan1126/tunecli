@@ -12,7 +12,7 @@ COMMAND_PREFIX = "M!"
 KNOWN_COMMANDS = {
     "play", "pause", "resume", "skip", "stop",
     "queue", "mood", "recommend", "volume", "help",
-    "next", "prev", "radio", "find",
+    "next", "prev", "radio", "find", "scenario",
 }
 
 
