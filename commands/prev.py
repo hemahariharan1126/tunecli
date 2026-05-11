@@ -3,4 +3,4 @@ from player.playback_controller import get_controller
 
 def prev(args):
     controller = get_controller()
-    controller.prev()
+    return controller.prev()

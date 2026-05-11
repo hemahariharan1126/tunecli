@@ -49,4 +49,4 @@ def execute_command(parsed_command):
 
     handler = COMMAND_MAP[command_name]
 
-    handler(args)
+    return handler(args)

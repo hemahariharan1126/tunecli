@@ -4,17 +4,14 @@ from rich.table import Table
 from rich.console import Console
 from rich.text import Text
 
-console = Console()
-
 def show_queue(args):
-    """M!queue — displays the current song queue."""
+    """M!queue — returns the current song queue as a Rich table."""
     controller = get_controller()
     queue = controller.get_queue()
     current = controller.queue_manager.now_playing()
 
     if not queue and not current:
-        console.print("[dim]Queue is empty.[/dim]")
-        return
+        return "[dim]Queue is empty.[/dim]"
 
     # Cyber-minimalist table design
     table = Table(
@@ -44,7 +41,5 @@ def show_queue(args):
         mins, secs = divmod(song.duration or 0, 60)
         table.add_row(str(i), song.title, song.artist, f"{mins}:{secs:02d}")
 
-    # Separator line matching header
-    console.print("\n" + "─" * 60, style="dim bright_black")
-    console.print(table)
-    console.print("─" * 60, style="dim bright_black")
+    return table
+

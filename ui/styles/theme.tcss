@@ -1,0 +1,134 @@
+/* ============================================================
+   TuneCLI — Cyberpunk/Synthwave Design System
+   ============================================================ */
+
+/* ── Design Tokens ────────────────────────────────────────── */
+$bg:            #080810;
+$surface:       #0d0d1e;
+$surface-hi:    #12122a;
+$accent:        #00d4ff;
+$accent-dim:    #0088aa;
+$accent-purple: #9b30ff;
+$mood-pink:     #ff2d9b;
+$success:       #00ff9f;
+$warning:       #ffb300;
+$muted:         #2a2a45;
+$text:          #e8e8ff;
+$text-dim:      #6a6a9a;
+
+/* ── Screen Base ──────────────────────────────────────────── */
+Screen {
+    background: $bg;
+    color: $text;
+    layers: below above;
+}
+
+/* ── Status Bar ───────────────────────────────────────────── */
+StatusBar {
+    height: 1;
+    background: $accent-purple 30%;
+    color: $accent;
+    padding: 0 2;
+    text-style: bold;
+    dock: top;
+}
+
+/* ── Main Container ───────────────────────────────────────── */
+#main_container {
+    height: 1fr;
+    margin: 0;
+}
+
+/* ── Now Playing Panel ────────────────────────────────────── */
+NowPlayingPanel {
+    border: tall $accent;
+    background: $surface;
+    padding: 1 2;
+    width: 3fr;
+    height: 1fr;
+    min-height: 18;
+    color: $text;
+}
+
+NowPlayingPanel:focus {
+    border: tall $accent;
+}
+
+/* ── Queue Panel ──────────────────────────────────────────── */
+QueuePanel {
+    border: tall $accent-purple;
+    background: $surface;
+    padding: 1 2;
+    width: 2fr;
+    height: 1fr;
+    color: $text;
+}
+
+/* ── Command Input ────────────────────────────────────────── */
+#cmd_input {
+    border: tall $accent;
+    background: $surface-hi;
+    color: $text;
+    padding: 0 1;
+    margin: 0;
+}
+
+#cmd_input:focus {
+    border: tall $accent;
+}
+
+/* ── Output Log ───────────────────────────────────────────── */
+#output_log {
+    border: tall $muted;
+    background: #080818;
+    height: 13;
+    padding: 0 1;
+    color: $text-dim;
+    scrollbar-color: $accent-dim;
+    scrollbar-background: $surface;
+}
+
+/* ── Modal ────────────────────────────────────────────────── */
+SelectionModal {
+    align: center middle;
+}
+
+#modal_container {
+    width: 66;
+    height: auto;
+    max-height: 28;
+    border: double $accent;
+    background: #0c0c22;
+    padding: 1 2;
+    align: center middle;
+}
+
+#modal_header {
+    color: $accent;
+    text-style: bold;
+    padding: 0 0 1 0;
+}
+
+#modal_rule {
+    color: $muted;
+}
+
+#selection_list {
+    margin: 1 0;
+    height: 12;
+    background: $surface;
+    border: tall $muted;
+    color: $text;
+}
+
+#cancel_btn {
+    width: 100%;
+    margin-top: 1;
+    background: $muted;
+    color: $warning;
+    border: tall $warning;
+}
+
+#cancel_btn:hover {
+    background: $warning 20%;
+}

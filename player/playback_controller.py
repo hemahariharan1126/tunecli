@@ -70,8 +70,7 @@ class PlaybackController:
         # Search for the song (Silenced background log)
         song = search_song(query)
         if not song:
-            self.console.print(f"[red]  ERR: NOT_FOUND: {query}[/red]")
-            return
+            return f"[red]  ERR: NOT_FOUND: {query}[/red]"
 
         # Add to queue
         self.queue_manager.add_song(song)
@@ -86,14 +85,14 @@ class PlaybackController:
         # If nothing is currently playing, start playback
         if self.mpv_player and not self.mpv_player.is_playing():
             self._play_next()
+            return f"[bold cyan]▶[/bold cyan] [white]{song.title}[/white] [dim]is now playing.[/dim]"
         else:
-            self.console.print(f"  [bold cyan]+[/bold cyan] [white]{song.title}[/white] [dim]added to queue.[/dim]")
+            return f"  [bold cyan]+[/bold cyan] [white]{song.title}[/white] [dim]added to queue.[/dim]"
 
     def _play_next(self):
         """Immediately play the next song from the queue."""
         if not self.mpv_player:
-            self.console.print("[red]ERR: MPV_NOT_INIT[/red]")
-            return
+            return "[red]ERR: MPV_NOT_INIT[/red]"
 
         next_song = self.queue_manager.next_song()
         if next_song:
@@ -106,7 +105,6 @@ class PlaybackController:
                 self._check_radio_refill()
         else:
             self.queue_manager.now_playing_song = None
-            self.console.print("[dim]  INFO: QUEUE_EMPTY[/dim]")
             
             # If radio mode is on but queue is empty, try a refill from history
             if self.radio_mode:
@@ -135,11 +133,13 @@ class PlaybackController:
                 seed_song = self.queue_manager.history[-1]
                 
             seed_query = f"{seed_song.title} {seed_song.artist}" if seed_song else "lofi beats"
+            seed_vid = getattr(seed_song, 'video_id', None) if seed_song else None
             
             recs = engine.get_spotify_recommendations(
                 seed_query, 
                 limit=5, 
-                target_lang=self.seed_language
+                target_lang=self.seed_language,
+                seed_video_id=seed_vid
             )
             
             if not recs:
@@ -171,26 +171,26 @@ class PlaybackController:
     def pause(self):
         if self.mpv_player:
             self.mpv_player.pause()
-            self.console.print("[bold yellow]  [HLD] PLAYBACK.STOPPED[/bold yellow]")
+            return "[bold yellow]  [HLD] PLAYBACK.STOPPED[/bold yellow]"
 
     def resume(self):
         if self.mpv_player:
             self.mpv_player.resume()
-            self.console.print("[bold green]  [RUN] PLAYBACK.RESUMED[/bold green]")
+            return "[bold green]  [RUN] PLAYBACK.RESUMED[/bold green]"
 
     def stop(self):
         if self.mpv_player:
             self.mpv_player.stop()
             self.queue_manager.clear()
             self.radio_mode = False # Disable radio on hard stop
-            self.console.print("[bold red]  [OFF] SYSTEM.HALT: QUEUE_CLEARED[/bold red]")
+            return "[bold red]  [OFF] SYSTEM.HALT: QUEUE_CLEARED[/bold red]"
 
     def skip(self):
         """Skip current track and play next."""
-        self.console.print("[dim]  SKIPPING.TRACK...[/dim]")
         if self.mpv_player:
             self.mpv_player.stop()
         self._play_next()
+        return "[dim]  SKIPPING.TRACK...[/dim]"
 
     def prev(self):
         """Go back to previous track if history exists."""
@@ -198,21 +198,21 @@ class PlaybackController:
         if prev_song and self.mpv_player:
             self._last_play_time = self._time_func()
             self.mpv_player.play(prev_song)
-            self.console.print(f"  [bold magenta]«[/bold magenta] [white]RESTORING:[/white] [cyan]{prev_song.title}[/cyan]")
+            return f"  [bold magenta]«[/bold magenta] [white]RESTORING:[/white] [cyan]{prev_song.title}[/cyan]"
         else:
-            self.console.print("[yellow]  WARN: NO_HISTORY_AVAILABLE[/yellow]")
+            return "[yellow]  WARN: NO_HISTORY_AVAILABLE[/yellow]"
 
     def set_volume(self, volume: int):
         if self.mpv_player:
             self.mpv_player.set_volume(volume)
-            self.console.print(f"  [dim]GAIN.SET:[/dim] [bold cyan]{volume}%[/bold cyan]")
+            return f"  [dim]GAIN.SET:[/dim] [bold cyan]{volume}%[/bold cyan]"
 
     def get_queue(self):
         return self.queue_manager.get_queue()
 
     def set_mood(self, mood: str):
         self.current_mood = mood
-        self.console.print(f"  [dim]VIBE.LOCK:[/dim] [bold magenta]{mood.upper()}[/bold magenta]")
+        return f"  [dim]VIBE.LOCK:[/dim] [bold magenta]{mood.upper()}[/bold magenta]"
 
 # Global controller instance
 controller = PlaybackController()

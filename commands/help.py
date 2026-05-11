@@ -2,10 +2,8 @@ from rich.table import Table
 from rich.console import Console
 from rich.text import Text
 
-console = Console()
-
 def help_command(args):
-    """M!help — displays available commands."""
+    """M!help — returns available commands as a Rich table."""
     table = Table(
         title=Text(" ⚡ SYSTEM.COMMANDS ", style="bold reverse magenta"),
         box=None,
@@ -35,6 +33,4 @@ def help_command(args):
     for cmd, desc in commands:
         table.add_row(cmd, desc)
         
-    console.print("\n" + "─" * 60, style="dim bright_black")
-    console.print(table)
-    console.print("─" * 60, style="dim bright_black")
+    return table

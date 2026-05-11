@@ -110,7 +110,7 @@ class RecommenderEngine:
         except:
             return "en"
 
-    def get_spotify_recommendations(self, seed_query: str, limit: int = 5, target_lang: str | None = None) -> list[dict]:
+    def get_spotify_recommendations(self, seed_query: str, limit: int = 5, target_lang: str | None = None, seed_video_id: str | None = None) -> list[dict]:
         """
         Get high-quality recommendations, optionally filtered by language.
         Falls back to YTMusic if Spotify is blocked.
@@ -152,29 +152,22 @@ class RecommenderEngine:
             from api.ytmusic_client import YTMusicClient
             yt_client = YTMusicClient()
             
-            from player.playback_controller import get_controller
-            current_song = get_controller().queue_manager.now_playing()
-            
-            if current_song:
-                vid = getattr(current_song, 'video_id', None)
-                if vid:
-                    logging.info(f"Fallback: Searching YTMusic recommendations for video_id: {vid}")
-                    recs = yt_client.get_recommendations(vid)
-                    if recs:
-                        logging.info(f"Fallback: Found {len(recs)} tracks on YTMusic.")
-                        formatted = [{"title": r["title"], "artist": r["artist"]} for r in recs]
-                        
-                        # Apply Language Guard to fallback
-                        if target_lang:
-                            filtered = [r for r in formatted if self.detect_language(f"{r['title']} {r['artist']}") == target_lang]
-                            return filtered[:limit]
-                        
-                        return formatted[:limit]
-                    else:
-                        logging.warning("Fallback: YTMusic returned no recommendations.")
+            if seed_video_id:
+                logging.info(f"Fallback: Searching YTMusic recommendations for video_id: {seed_video_id}")
+                recs = yt_client.get_recommendations(seed_video_id)
+                if recs:
+                    logging.info(f"Fallback: Found {len(recs)} tracks on YTMusic.")
+                    formatted = [{"title": r["title"], "artist": r["artist"]} for r in recs]
+                    
+                    # Apply Language Guard to fallback
+                    if target_lang:
+                        filtered = [r for r in formatted if self.detect_language(f"{r['title']} {r['artist']}") == target_lang]
+                        return filtered[:limit]
+                    
+                    return formatted[:limit]
                 else:
-                    logging.warning("Fallback: Current song has no video_id.")
+                    logging.warning("Fallback: YTMusic returned no recommendations.")
             else:
-                logging.warning("Fallback: No song currently playing in controller.")
+                logging.warning("Fallback: No seed_video_id provided.")
             
             return []

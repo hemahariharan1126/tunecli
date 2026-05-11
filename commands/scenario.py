@@ -2,28 +2,23 @@
 from player.playback_controller import get_controller
 from api.llm_client import get_llm_client
 from search_engine.yt_search import search_song
-from rich.console import Console
+from rich.console import Group
 from rich.panel import Panel
 from rich.text import Text
 import logging
 import time
 
-console = Console()
-
 def scenario(args):
     if not args:
-        console.print("[yellow]Usage: M!scenario \"your story here\"[/yellow]")
-        return
+        return "[yellow]Usage: M!scenario \"your story here\"[/yellow]"
 
     story = " ".join(args)
-    console.print(f"\n[dim]✨ ANALYZING.SCENARIO...[/dim]")
     
     llm = get_llm_client()
     analysis = llm.analyze_scenario(story)
     
     if "error" in analysis:
-        console.print(f"[bold red]ERR: LLM_ANALYSIS_FAILED: {analysis['error']}[/bold red]")
-        return
+        return f"[bold red]ERR: LLM_ANALYSIS_FAILED: {analysis['error']}[/bold red]"
 
     mood = analysis.get("mood", "unknown")
     tone = analysis.get("tone", "unknown")
@@ -31,7 +26,7 @@ def scenario(args):
     queries = analysis.get("queries", [])
     reasoning = analysis.get("reasoning", "")
 
-    # Display analysis results
+    # 1. Create Analysis Panel
     info_panel = Panel(
         Text.assemble(
             ("MOOD: ", "bold cyan"), (f"{mood.upper()}\n", "white"),
@@ -43,36 +38,43 @@ def scenario(args):
         title="[bold magenta]SCENARIO.ANALYSIS[/bold magenta]",
         border_style="cyan"
     )
-    console.print(info_panel)
 
     controller = get_controller()
     
-    # Set the mood in the controller if it's one of the known ones
+    # Sync controller state
     from config import MOOD_MAP
     if mood.lower() in MOOD_MAP:
         controller.set_mood(mood.lower())
-    
-    # Update seed language for future recommendations
     controller.seed_language = lang
 
-    # Search and add songs to queue
-    console.print("[dim]  FETCHING.MATCHING.TRACKS...[/dim]")
-    
+    # 2. Search and collect track results
+    track_results = [Text("\n⚡ FETCHING.TRACKS...", style="dim")]
     found_any = False
+    
     for q in queries:
-        console.print(f"  [cyan]>[/cyan] [dim]Searching:[/dim] {q}", end="\r")
         song = search_song(q)
         if song:
             controller.queue_manager.add_song(song)
-            console.print(f"  [bold green]✓[/bold green] [white]{song.title}[/white] [dim]added.[/dim]")
+            track_results.append(Text.assemble(
+                ("  ✓ ", "bold green"), (f"{song.title}", "white"), (" added.", "dim")
+            ))
             found_any = True
         else:
-            console.print(f"  [bold red]✗[/bold red] [dim]Not found:[/dim] {q}")
+            track_results.append(Text.assemble(
+                ("  ✗ ", "bold red"), (f"Not found: {q}", "dim")
+            ))
 
+    # 3. Final Status Message
     if found_any:
-        # If nothing is currently playing, start playback
         if controller.mpv_player and not controller.mpv_player.is_playing():
             controller._play_next()
-        console.print("\n[bold reverse green] SUCCESS [/bold reverse green] [white]Scenario soundtrack ready![/white]")
+        status_msg = Text("\n SUCCESS: Scenario soundtrack ready!", style="bold reverse green")
     else:
-        console.print("\n[bold reverse red] FAILED [/bold reverse red] [white]Could not find any songs for this scenario.[/white]")
+        status_msg = Text("\n FAILED: No matching tracks resolved.", style="bold reverse red")
+
+    # 4. Return everything as a Group for the TUI Log
+    return Group(
+        info_panel,
+        *track_results,
+        status_msg
+    )

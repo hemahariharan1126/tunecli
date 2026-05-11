@@ -2,4 +2,4 @@
 from commands.skip import skip
 
 def next_command(args):
-    skip(args)
+    return skip(args)
