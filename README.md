@@ -99,6 +99,71 @@ The entire UI is powered by a custom **TCSS cyberpunk theme** (`ui/styles/theme.
 
 ## 🛠️ System Architecture
 
+### Data Flow
+
+```mermaid
+flowchart TD
+    User(["👤 User  M! Command"]):::input
+
+    subgraph Parsing ["🔍 Input Layer"]
+        Parser["command_parser.py\nLexical Tokenizer"]
+        Router["command_router.py\nDispatch Router"]
+    end
+
+    subgraph Commands ["⚙️ Command Handlers"]
+        direction LR
+        Play["M!play"]
+        Recommend["M!recommend"]
+        Mood["M!mood"]
+        Radio["M!radio"]
+        Scenario["M!scenario"]
+        Find["M!find"]
+        Controls["pause / skip / prev\nvolume / queue / help"]
+    end
+
+    subgraph APIs ["🌐 External APIs"]
+        Spotify["Spotify REST API\naudio features & metadata"]
+        YTMusic["YouTube Music\nstream search"]
+        Gemini["Google Gemini 2.0\nLLM scenario analysis"]
+        Shazam["Shazam / shazamio-core\nRust acoustic fingerprinting"]
+    end
+
+    subgraph Intelligence ["🧠 Intelligence Layer"]
+        Recommender["recommender_engine.py\nCosine Similarity · Acoustic Vectors"]
+    end
+
+    subgraph Playback ["🎵 Playback Engine"]
+        Controller["playback_controller.py\nlibmpv · Gapless Queue Sync"]
+    end
+
+    subgraph TUI ["🖥️ Textual TUI  ui/app.py"]
+        direction LR
+        StatusBar["Status Bar HUD"]
+        NowPlaying["Now Playing\n+ Visualizer"]
+        QueuePanel["Queue Panel"]
+        InputBar["Input Bar"]
+        Modal["Modal Dialogs"]
+    end
+
+    User --> Parser --> Router
+    Router --> Play & Recommend & Mood & Radio & Scenario & Find & Controls
+    Play & Radio --> YTMusic
+    Recommend & Mood --> Spotify --> Recommender
+    Scenario --> Gemini
+    Find --> Shazam
+    Gemini & Shazam & YTMusic --> Controller
+    Recommender --> Controller
+    Controls --> Controller
+    Controller --> StatusBar & NowPlaying & QueuePanel
+    User --> InputBar --> Parser
+    Scenario & Find --> Modal
+
+    classDef input fill:#7c3aed,stroke:#a855f7,color:#fff
+    classDef default fill:#1e1e2e,stroke:#6366f1,color:#e2e8f0
+```
+
+### Module Reference
+
 ```text
 tunecli/
 ├── api/                # Stateful HTTP clients (Spotify REST, YTMusic, LLM)
