@@ -17,17 +17,20 @@ def help_command(args):
     table.add_column("DESCRIPTION", style="dim white")
     
     commands = [
-        ("M!play <song>", "Search and play/queue a track"),
-        ("M!pause / M!resume", "Halt or continue playback"),
-        ("M!skip / M!next", "Jump to the next track"),
-        ("M!prev", "Return to historical track"),
-        ("M!stop", "Cease all playback and clear queue"),
-        ("M!queue", "Visualize current track sequence"),
-        ("M!mood <type>", "Bias search results by vibe"),
-        ("M!recommend", "Extract similar tracks via AI"),
-        ("M!scenario <story>", "Soundtrack your situation via LLM"),
-        ("M!volume <0-100>", "Adjust audio gain"),
-        ("M!help", "Display this interface")
+        ("M!play <song>",          "Search and play/queue a track"),
+        ("M!pause / M!resume",     "Halt or continue playback"),
+        ("M!skip / M!next",        "Jump to the next track"),
+        ("M!prev",                 "Return to historical track"),
+        ("M!stop",                 "Cease all playback and clear queue"),
+        ("M!queue",                "Visualize current track sequence"),
+        ("M!mood <type>",          "Bias search results by vibe"),
+        ("M!recommend",            "Extract similar tracks via AI"),
+        ("M!scenario <story>",     "Soundtrack your situation via LLM"),
+        ("M!radio <on|off>",       "Toggle continuous radio stream"),
+        ("M!find <song>",          "Search without playing"),
+        ("M!volume <0-100>",       "Adjust audio gain"),
+        ("M!theme <name>",         "Switch colour theme  [cyberpunk · black · red_velvet · ocean · forest · sunset · rose_gold · dracula]"),
+        ("M!help",                 "Display this interface"),
     ]
     
     for cmd, desc in commands:

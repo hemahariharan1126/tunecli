@@ -4,9 +4,9 @@ TuneCLI App — Modular orchestrator for the reactive Textual UI.
 
 from textual import work
 from textual.app import App, ComposeResult
-from textual.widgets import Log, Input
+from textual.widgets import RichLog, Input
 from textual.containers import Container, Horizontal
-from rich.console import Console
+
 
 from parser.command_parser import parse_command
 from player.playback_controller import get_controller
@@ -17,6 +17,7 @@ from ui.components.queue import QueuePanel
 from ui.components.input import CommandSuggester
 from ui.components.modal import SelectionModal
 from ui.components.status_bar import StatusBar
+from ui.components.logo import LogoPanel
 
 # Command Dispatch
 from commands.play import play as play_func
@@ -34,6 +35,10 @@ from commands.scenario import scenario as scenario_func
 from commands.radio import radio as radio_func
 from commands.next import next_command
 from commands.prev import prev as prev_func
+from commands.theme import theme as theme_func
+
+# Theme system
+from ui.themes import get_theme_css, get_theme_path, get_saved_theme
 
 COMMAND_DISPATCH = {
     "play":      play_func,
@@ -51,6 +56,7 @@ COMMAND_DISPATCH = {
     "radio":     radio_func,
     "next":      next_command,
     "prev":      prev_func,
+    "theme":     theme_func,
 }
 
 
@@ -72,14 +78,19 @@ class TuneCLIApp(App):
 
     def __init__(self):
         super().__init__()
-        self.controller       = get_controller()
+        self.controller        = get_controller()
         self.now_playing_panel = NowPlayingPanel()
         self.queue_panel       = QueuePanel()
         self.status_bar        = StatusBar()
+        self.logo_panel        = LogoPanel()
+        self.active_theme      = get_saved_theme()  # Load persisted theme
 
     def compose(self) -> ComposeResult:
         # ── Top HUD (docked via CSS) ─────────────────────────
         yield self.status_bar
+
+        # ── Logo banner (docked below status bar) ────────────
+        yield self.logo_panel
 
         # ── Main panels ──────────────────────────────────────
         yield Container(
@@ -98,16 +109,20 @@ class TuneCLIApp(App):
         )
 
         # ── Output log ────────────────────────────────────────
-        yield Log(id="output_log", highlight=True)
+        yield RichLog(id="output_log", highlight=True, markup=True)
 
     def on_mount(self) -> None:
-        """Initialize UI timer and focus."""
+        """Initialize UI timer, focus, and apply saved theme."""
         self.set_interval(1.0, self._update_ui)
         self.query_one("#cmd_input", Input).focus()
 
+        # Apply saved theme on startup (hot-swap if not default)
+        if self.active_theme != "cyberpunk":
+            self._apply_theme(self.active_theme, announce=False)
+
         # Welcome message
-        log = self.query_one("#output_log", Log)
-        log.write_line(
+        log = self.query_one("#output_log", RichLog)
+        log.write(
             "[bold bright_cyan]⚡ M! TuneCLI — Ready[/bold bright_cyan]  "
             "[dim]Type [bold]M!help[/bold] to see all commands.[/dim]"
         )
@@ -150,8 +165,8 @@ class TuneCLIApp(App):
     # ── Command input ─────────────────────────────────────────
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
-        raw         = event.value.strip()
-        log_widget  = self.query_one("#output_log", Log)
+        raw          = event.value.strip()
+        log_widget   = self.query_one("#output_log", RichLog)
         input_widget = self.query_one("#cmd_input", Input)
         input_widget.clear()
 
@@ -160,7 +175,7 @@ class TuneCLIApp(App):
 
         parsed = parse_command(raw)
         if not parsed:
-            log_widget.write_line(
+            log_widget.write(
                 "[bold red]✗[/bold red] [dim]Unknown command.[/dim]  "
                 "[dim]Try [bold]M!help[/bold][/dim]"
             )
@@ -168,7 +183,7 @@ class TuneCLIApp(App):
 
         handler = COMMAND_DISPATCH.get(parsed.name)
         if not handler:
-            log_widget.write_line(
+            log_widget.write(
                 f"[bold red]✗[/bold red] [dim]No handler for '[bold]{parsed.name}[/bold]'[/dim]"
             )
             return
@@ -178,13 +193,13 @@ class TuneCLIApp(App):
     @work(thread=True)
     def run_command_worker(self, handler, args, name: str) -> None:
         """Executes a command in a background thread to keep UI responsive."""
-        log_widget = self.query_one("#output_log", Log)
+        log_widget = self.query_one("#output_log", RichLog)
 
         # Immediate feedback line
         prefix = "LISTENING" if name == "find" else name.upper()
         self.call_from_thread(
             log_widget.write,
-            f"[dim]  ⚡ CMD → {prefix}…[/dim]\n",
+            f"[dim]  ⚡ CMD → {prefix}…[/dim]",
         )
 
         try:
@@ -192,24 +207,18 @@ class TuneCLIApp(App):
 
             if isinstance(result, dict) and result.get("type") == "selection":
                 self.call_from_thread(self._launch_selection_modal, result)
+            elif isinstance(result, dict) and result.get("type") == "theme_switch":
+                self.call_from_thread(self._apply_theme, result["theme"])
             elif result:
-                if not isinstance(result, str):
-                    capture_console = Console(
-                        force_terminal=True,
-                        width=log_widget.content_size.width or 80,
-                    )
-                    with capture_console.capture() as capture:
-                        capture_console.print(result)
-                    result = capture.get()
-
-                self.call_from_thread(log_widget.write, f"{result}\n")
+                # RichLog.write() accepts both Rich Renderables and markup strings natively
+                self.call_from_thread(log_widget.write, result)
 
             self.call_from_thread(self._update_ui)
 
         except Exception as e:
             self.call_from_thread(
                 log_widget.write,
-                f"[bold red]✗  ERR:[/bold red] [dim]{name.upper()} → {e}[/dim]\n",
+                f"[bold red]✗  ERR:[/bold red] [dim]{name.upper()} → {e}[/dim]",
             )
 
     def _launch_selection_modal(self, data: dict) -> None:
@@ -223,8 +232,27 @@ class TuneCLIApp(App):
                 query    = f"{selected['title']} {selected['artist']}"
                 self.run_command_worker(COMMAND_DISPATCH["play"], [query], "play")
             else:
-                self.query_one("#output_log", Log).write_line(
+                self.query_one("#output_log", RichLog).write(
                     "[dim]  ✕ Selection cancelled.[/dim]"
                 )
 
         self.push_screen(SelectionModal(title, options), handle_selection)
+
+    def _apply_theme(self, name: str, announce: bool = True) -> None:
+        """Hot-swap the active CSS theme on the main thread."""
+        try:
+            from pathlib import Path
+            path = Path(get_theme_path(name))
+            self.stylesheet.read(path)
+            self.refresh_css()
+            self.active_theme = name
+            if announce:
+                log = self.query_one("#output_log", RichLog)
+                label = name.upper()
+                log.write(
+                    f"[bold bright_cyan]◈  THEME → {label}[/bold bright_cyan]  "
+                    f"[dim]applied & saved.[/dim]"
+                )
+        except Exception as e:
+            log = self.query_one("#output_log", RichLog)
+            log.write(f"[bold red]✗  THEME ERR:[/bold red] [dim]{e}[/dim]")

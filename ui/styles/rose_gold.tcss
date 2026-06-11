@@ -1,20 +1,21 @@
 /* ============================================================
-   TuneCLI — Cyberpunk/Synthwave Design System
+   TuneCLI — Rose Gold Theme
+   Dark charcoal bg, rose-gold + blush pink accents, pale blush text.
    ============================================================ */
 
 /* ── Design Tokens ────────────────────────────────────────── */
-$bg:            #080810;
-$surface:       #0d0d1e;
-$surface-hi:    #12122a;
-$accent:        #00d4ff;
-$accent-dim:    #0088aa;
-$accent-purple: #9b30ff;
-$mood-pink:     #ff2d9b;
+$bg:            #120d0f;
+$surface:       #1c1317;
+$surface-hi:    #261a1f;
+$accent:        #e8a0b0;
+$accent-dim:    #c47080;
+$accent-purple: #3d2030;
+$mood-pink:     #ff79c6;
 $success:       #00ff9f;
 $warning:       #ffb300;
-$muted:         #2a2a45;
-$text:          #e8e8ff;
-$text-dim:      #6a6a9a;
+$muted:         #3d252d;
+$text:          #fde8ed;
+$text-dim:      #9a7080;
 
 /* ── Screen Base ──────────────────────────────────────────── */
 Screen {
@@ -26,7 +27,7 @@ Screen {
 /* ── Status Bar ───────────────────────────────────────────── */
 StatusBar {
     height: 1;
-    background: $accent-purple 30%;
+    background: $accent-purple;
     color: $accent;
     padding: 0 2;
     text-style: bold;
@@ -37,7 +38,7 @@ StatusBar {
 LogoPanel {
     height: auto;
     dock: top;
-    background: $surface;
+    background: $bg;
     color: $accent;
     text-style: bold;
     padding: 1 2;
@@ -67,7 +68,7 @@ NowPlayingPanel:focus {
 
 /* ── Queue Panel ──────────────────────────────────────────── */
 QueuePanel {
-    border: tall $accent-purple;
+    border: tall $accent-dim;
     background: $surface;
     padding: 1 2;
     width: 2fr;
@@ -91,7 +92,7 @@ QueuePanel {
 /* ── Output Log ───────────────────────────────────────────── */
 #output_log {
     border: tall $muted;
-    background: #080818;
+    background: $bg;
     height: 13;
     padding: 0 1;
     color: $text-dim;
@@ -109,7 +110,7 @@ SelectionModal {
     height: auto;
     max-height: 28;
     border: double $accent;
-    background: #0c0c22;
+    background: $surface;
     padding: 1 2;
     align: center middle;
 }
@@ -127,7 +128,7 @@ SelectionModal {
 #selection_list {
     margin: 1 0;
     height: 12;
-    background: $surface;
+    background: $bg;
     border: tall $muted;
     color: $text;
 }
