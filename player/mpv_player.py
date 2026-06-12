@@ -135,6 +135,41 @@ class MPVPlayer:
         except:
             return 0.0
 
+    def set_eq(self, bands: list[int]) -> None:
+        """
+        Apply a 10-band equalizer using MPV's lavfi audio filter.
+
+        Args:
+            bands: List of 10 gain values in dB (-12 to +12).
+                   Corresponds to [32,64,125,250,500,1k,2k,4k,8k,16k] Hz.
+        """
+        try:
+            freqs = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
+
+            # Skip flat bands to keep filter chain lean
+            active = [
+                f"equalizer=f={f}:width_type=o:w=2:g={g}"
+                for f, g in zip(freqs, bands)
+                if g != 0
+            ]
+
+            if not active:
+                self.player.af = ""   # All bands flat — remove filter entirely
+            else:
+                self.player.af = f"lavfi=[{','.join(active)}]"
+
+            logging.info(f"MPV EQ applied: {bands}")
+        except Exception as e:
+            logging.warning(f"MPV set_eq failed: {e}")
+
+    def reset_eq(self) -> None:
+        """Remove all audio filters — flat EQ."""
+        try:
+            self.player.af = ""
+            logging.info("MPV EQ reset to flat.")
+        except Exception as e:
+            logging.warning(f"MPV reset_eq failed: {e}")
+
     def terminate(self):
         """Cleanup MPV instance."""
         self.player.terminate()
