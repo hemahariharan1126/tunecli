@@ -86,28 +86,80 @@ class RecommenderEngine:
             return "en"
             
         lower_text = text.lower()
-        
-        # 1. Script-based heuristic (highly reliable)
-        if any('\u0b80' <= c <= '\u0bff' for c in text): return "ta" # Tamil
-        if any('\u0900' <= c <= '\u097f' for c in text): return "hi" # Hindi
-        
-        # 2. Keyword-based boosting for Latin-script regional titles
-        tamil_keywords = ['tamil', 'kuthu', 'anirudh', 'ar rahman', 'vijay', 'ajith', 'yuvan']
-        hindi_keywords = ['hindi', 'bollywood', 'arijit', 'shreya ghoshal', 'kumarsanu', 'kesariya']
-        
+
+        # 1. Script-based heuristic (highest reliability — unambiguous Unicode ranges)
+        if any('\u0b80' <= c <= '\u0bff' for c in text): return "ta"  # Tamil script
+        if any('\u0900' <= c <= '\u097f' for c in text): return "hi"  # Devanagari (Hindi/Marathi)
+        if any('\u0c00' <= c <= '\u0c7f' for c in text): return "te"  # Telugu script
+        if any('\u0d00' <= c <= '\u0d7f' for c in text): return "ml"  # Malayalam script
+        if any('\u0c80' <= c <= '\u0cff' for c in text): return "kn"  # Kannada script
+
+        # 2. Keyword-based boosting for Latin-script regional content
+        #    (covers cases where artist/title is romanised Tamil/Hindi)
+        tamil_keywords = [
+            # Genre & language tags
+            'tamil', 'kollywood', 'kuthu', 'gaana', 'kolaveri', 'tamil album',
+            'tamil songs', 'tamil hits', 'tamil movie',
+            # Composers / Music Directors
+            'anirudh', 'anirudh ravichander', 'ar rahman', 'yuvan', 'yuvan shankar raja',
+            'harris jayaraj', 'devi sri prasad', 'dsp', 'santhosh narayanan',
+            'gv prakash', 'sean roldan', 'd imman', 'ilaiyaraaja', 'ilayaraja',
+            'james vasanthan', 'karthik raja', 'vidyasagar',
+            # Singers
+            'sid sriram', 'haricharan', 'vijay prakash', 'karthik singer',
+            'chinmayi', 'tippu', 'benny dayal',
+            # Actors / Directors (whose names appear in song titles)
+            'vijay thalapathy', 'thalapathy', 'thala ajith', 'thala',
+            'rajinikanth', 'rajini', 'kamal haasan', 'kamal',
+            'vikram', 'suriya', 'sivakarthikeyan', 'simbu', 'str',
+            'vijay sethupathi', 'dhanush', 'nayanthara',
+        ]
+
+        hindi_keywords = [
+            # Genre & language tags
+            'hindi', 'bollywood', 'hindi songs', 'hindi album', 'hindi movie',
+            'filmi', 'desi beats',
+            # Composers
+            'pritam', 'vishal shekhar', 'amit trivedi', 'shankar ehsaan loy',
+            'a r rahman hindi', 'sajid wajid', 'meet bros', 'tanishk bagchi',
+            # Singers
+            'arijit singh', 'shreya ghoshal', 'sonu nigam', 'udit narayan',
+            'lata mangeshkar', 'kishore kumar', 'kumar sanu', 'alka yagnik',
+            'atif aslam', 'badshah', 'yo yo honey singh', 'neha kakkar',
+            'armaan malik', 'jubin nautiyal', 'darshan raval',
+            # Song/film keywords
+            'kesariya', 'tum hi ho', 'raabta', 'dilwale', 'kabir singh',
+        ]
+
+        telugu_keywords = [
+            'telugu', 'tollywood', 'devi sri prasad telugu', 'ss thaman',
+            'thaman', 'mahesh babu', 'allu arjun', 'prabhas', 'ram charan',
+        ]
+
+        malayalam_keywords = [
+            'malayalam', 'mollywood', 'ouseppachan', 'vidyasagar malayalam',
+            'mohanlal', 'mammootty',
+        ]
+
         if any(kw in lower_text for kw in tamil_keywords):
             return "ta"
         if any(kw in lower_text for kw in hindi_keywords):
             return "hi"
-            
-        # 3. General detection using langdetect
+        if any(kw in lower_text for kw in telugu_keywords):
+            return "te"
+        if any(kw in lower_text for kw in malayalam_keywords):
+            return "ml"
+
+        # 3. Statistical detection via langdetect
         try:
             detected = detect(text)
-            # langdetect often confuses short Tamil/Hindi strings with Indonesian (id) or Somali (so)
-            if detected in ['id', 'so', 'tl', 'af'] and (" " not in text or len(text) < 30):
-                return "ta" # Statistical bias for the user's likely regional context
+            # langdetect frequently mis-classifies short Indian-language romanisations
+            # as Indonesian (id), Somali (so), Tagalog (tl), or Afrikaans (af).
+            # Apply a conservative Tamil bias for ambiguous short strings.
+            if detected in ['id', 'so', 'tl', 'af', 'sw'] and len(text.split()) <= 5:
+                return "ta"
             return detected
-        except:
+        except Exception:
             return "en"
 
     def get_spotify_recommendations(self, seed_query: str, limit: int = 5, target_lang: str | None = None, seed_video_id: str | None = None) -> list[dict]:

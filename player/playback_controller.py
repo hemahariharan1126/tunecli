@@ -6,10 +6,21 @@ from core.song import Song
 from player.mpv_player import get_player
 from player.queue_manager import QueueManager
 from search_engine.yt_search import search_song
+from equalizer.eq_engine import EQEngine
 import logging
 
 from rich.console import Console
 from rich.text import Text
+
+# Human-readable language names for user feedback
+LANG_NAMES: dict[str, str] = {
+    "ta": "Tamil 🎵",
+    "hi": "Hindi 🎵",
+    "te": "Telugu 🎵",
+    "ml": "Malayalam 🎵",
+    "kn": "Kannada 🎵",
+    "en": "English 🎵",
+}
 
 class PlaybackController:
     def __init__(self):
@@ -23,11 +34,16 @@ class PlaybackController:
             
         self.current_mood = ""
         self.radio_mode = False
-        self.seed_language = None # Locked language for recommendations
+        self.seed_language = None  # Locked language for recommendations
         self._is_refilling = False
         self._last_play_time = 0
+        self._lang_overridden = False
         import time
         self._time_func = time.time
+
+        # EQ engine — LLM-driven per-song equalizer
+        self.eq_engine = EQEngine()
+        self.eq_enabled = True  # Auto-EQ on by default
         
         # Register for auto-play when a song ends
         if self.mpv_player:
@@ -75,19 +91,33 @@ class PlaybackController:
         # Add to queue
         self.queue_manager.add_song(song)
 
-        # Detect and lock seed language if this is the first song
+        # ── Language detection: lock on the very first song ─────────────────
+        lang_notice = ""
         if self.seed_language is None:
             from recommender.recommender_engine import RecommenderEngine
             engine = RecommenderEngine()
-            self.seed_language = engine.detect_language(f"{song.title} {song.artist}")
+            detected = engine.detect_language(f"{song.title} {song.artist}")
+            self.seed_language = detected
             logging.info(f"Language context locked to: {self.seed_language}")
+            lang_name = LANG_NAMES.get(detected, detected.upper())
+            lang_notice = (
+                f"\n  [bold reverse cyan] LANG.LOCK [/bold reverse cyan] "
+                f"[dim]Detected [/dim][bold bright_cyan]{lang_name}[/bold bright_cyan]"
+                f"[dim] — recommend & radio will stay in this language.[/dim]"
+            )
 
         # If nothing is currently playing, start playback
         if self.mpv_player and not self.mpv_player.is_playing():
             self._play_next()
-            return f"[bold cyan]▶[/bold cyan] [white]{song.title}[/white] [dim]is now playing.[/dim]"
+            return (
+                f"[bold cyan]▶[/bold cyan] [white]{song.title}[/white]"
+                f" [dim]is now playing.[/dim]{lang_notice}"
+            )
         else:
-            return f"  [bold cyan]+[/bold cyan] [white]{song.title}[/white] [dim]added to queue.[/dim]"
+            return (
+                f"  [bold cyan]+[/bold cyan] [white]{song.title}[/white]"
+                f" [dim]added to queue.[/dim]{lang_notice}"
+            )
 
     def _play_next(self):
         """Immediately play the next song from the queue."""
@@ -98,14 +128,23 @@ class PlaybackController:
         if next_song:
             self._last_play_time = self._time_func()
             self.mpv_player.play(next_song)
-            # Silenced 'MOUNTED' print; the status bar handles now-playing info
-            
+
+            # Trigger EQ optimization in a background thread (non-blocking)
+            if self.eq_enabled:
+                import threading
+                threading.Thread(
+                    target=self.eq_engine.apply_for_song_with_lang,
+                    args=(next_song, self.mpv_player, self.seed_language or "en"),
+                    daemon=True,
+                    name=f"eq-{next_song.title[:20]}",
+                ).start()
+
             # If radio mode is on, keep the queue topped up
             if self.radio_mode:
                 self._check_radio_refill()
         else:
             self.queue_manager.now_playing_song = None
-            
+
             # If radio mode is on but queue is empty, try a refill from history
             if self.radio_mode:
                 self._check_radio_refill()
@@ -144,17 +183,22 @@ class PlaybackController:
             
             if not recs:
                 logging.warning("RADIO.ERR: No recommendations. Triggering bulletproof fallback.")
-                # Hard fallback to keep the queue alive
-                song = search_song("lofi chill beats official audio")
+                # Language-aware hard fallback to keep the queue alive
+                fallback_q = (
+                    f"{LANG_NAMES.get(self.seed_language, 'lofi').split()[0]} lofi beats"
+                    if self.seed_language and self.seed_language != 'en'
+                    else "lofi chill beats official audio"
+                )
+                song = search_song(fallback_q, lang=self.seed_language)
                 if song:
                     self.queue_manager.add_song(song)
                 else:
                     return
 
             for r in recs:
-                # Search and add each to queue
+                # Search and add each to queue with language-scoped query
                 query = f"{r['title']} {r['artist']}"
-                song = search_song(query)
+                song = search_song(query, lang=self.seed_language)
                 if song:
                     self.queue_manager.add_song(song)
                     # Silenced Radio queue log

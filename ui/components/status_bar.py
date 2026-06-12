@@ -1,6 +1,6 @@
 """
 StatusBar Component — Always-visible 1-line HUD for TuneCLI.
-Shows: radio mode, queue count, volume, playback time.
+Shows: radio mode, queue count, volume, playback time, language lock.
 """
 
 from textual.widgets import Static
@@ -48,7 +48,25 @@ class StatusBar(Static):
                 mt, st = divmod(int(dur), 60)
                 time_str = f"[dim]⏱[/dim] [white]{mc:02d}:{sc:02d}[/white][dim] / {mt:02d}:{st:02d}[/dim]"
 
+        # Language lock badge
+        lang_code = getattr(controller, "seed_language", None)
+        if lang_code:
+            lang_badge = f"[bold bright_cyan]🌐 {lang_code.upper()}[/bold bright_cyan]  "
+        else:
+            lang_badge = "[dim]🌐 —  [/dim]"
+
+        # EQ engine badge
+        eq_enabled = getattr(controller, "eq_enabled", False)
+        eq_badge = (
+            "[bold bright_cyan]⚡EQ:ON[/bold bright_cyan]"
+            if eq_enabled
+            else "[dim]⚡EQ:OFF[/dim]"
+        )
+
         # App name branding
         brand = "[bold bright_cyan]⚡ M! TuneCLI[/bold bright_cyan]  [dim]│[/dim]  "
 
-        self.status_text = brand + radio + "  " + queue + volume_str + time_str
+        self.status_text = (
+            brand + radio + "  " + queue + volume_str + time_str
+            + "  " + lang_badge + eq_badge
+        )

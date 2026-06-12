@@ -30,6 +30,8 @@ def help_command(args):
         ("M!find <song>",          "Search without playing"),
         ("M!volume <0-100>",       "Adjust audio gain"),
         ("M!theme <name>",         "Switch colour theme  [cyberpunk · black · red_velvet · ocean · forest · sunset · rose_gold · dracula]"),
+        ("M!lang [code|reset]",    "View/override language lock  [ta · hi · te · ml · kn · en]  or reset for auto-detect"),
+        ("M!eq [on|off|reset|info]","LLM-optimized per-song equalizer  [auto-applied on every track]"),
         ("M!help",                 "Display this interface"),
     ]
     

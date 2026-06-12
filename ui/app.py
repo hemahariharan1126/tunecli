@@ -36,6 +36,8 @@ from commands.radio import radio as radio_func
 from commands.next import next_command
 from commands.prev import prev as prev_func
 from commands.theme import theme as theme_func
+from commands.lang import lang as lang_func
+from commands.eq import eq as eq_func
 
 # Theme system
 from ui.themes import get_theme_css, get_theme_path, get_saved_theme
@@ -57,6 +59,8 @@ COMMAND_DISPATCH = {
     "next":      next_command,
     "prev":      prev_func,
     "theme":     theme_func,
+    "lang":      lang_func,
+    "eq":        eq_func,
 }
 
 

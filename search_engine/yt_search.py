@@ -7,6 +7,15 @@ from core.song import Song
 from search_engine.fuzzy_match import best_match
 import logging
 
+# Language suffix map — appended to YT queries when a language lock is active
+LANG_SUFFIX: dict[str, str] = {
+    "ta": "Tamil",
+    "hi": "Hindi",
+    "te": "Telugu",
+    "ml": "Malayalam",
+    "kn": "Kannada",
+}
+
 # Configure yt-dlp options
 YDL_OPTS = {
     'format': 'bestaudio/best',
@@ -23,14 +32,29 @@ class YTSearch:
     def __init__(self):
         self.ydl = yt_dlp.YoutubeDL(YDL_OPTS)
 
-    def search(self, query: str) -> Song | None:
+    def search(self, query: str, lang: str | None = None) -> Song | None:
         """
         Search YouTube for the query and return the best matching Song object.
+
+        Args:
+            query: Song title / artist string.
+            lang:  ISO-639-1 language code (e.g. 'ta', 'hi'). When provided,
+                   a language suffix is appended to the YouTube search query
+                   to keep results in the correct language.
         """
         try:
-            logging.info(f"Searching YouTube for: {query}")
-            # Add "official audio" to help narrow down results if not specified
-            search_query = query if "official" in query.lower() or "lyrics" in query.lower() else f"{query} official audio"
+            logging.info(f"Searching YouTube for: {query} [lang={lang}]")
+
+            # Build a language-aware search string
+            lang_tag = LANG_SUFFIX.get(lang or "", "")
+            already_qualified = any(kw in query.lower() for kw in ["official", "lyrics", "audio"])
+
+            if lang_tag and not already_qualified:
+                search_query = f"{query} {lang_tag} official audio"
+            elif already_qualified:
+                search_query = query
+            else:
+                search_query = f"{query} official audio"
             
             info = self.ydl.extract_info(f"ytsearch5:{search_query}", download=False)
             
@@ -74,5 +98,6 @@ class YTSearch:
 # Singleton instance
 yt_search_engine = YTSearch()
 
-def search_song(query: str) -> Song | None:
-    return yt_search_engine.search(query)
+def search_song(query: str, lang: str | None = None) -> Song | None:
+    """Search YouTube for a song, optionally scoped to a language."""
+    return yt_search_engine.search(query, lang=lang)

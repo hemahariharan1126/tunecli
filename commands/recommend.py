@@ -36,7 +36,7 @@ def recommend(args):
     added_count = 0
     for rec in recommendations:
         query = f"{rec['title']} {rec['artist']}"
-        song = search_song(query)
+        song = search_song(query, lang=controller.seed_language)
         if song:
             controller.queue_manager.add_song(song)
             output.append(f"  [bold cyan]+[/bold cyan] {song.title} [dim]by {song.artist}[/dim]")
