@@ -15,7 +15,12 @@ from typing import Optional
 
 # Penalty keywords: results containing these score lower unless the user
 # explicitly asked for them.
-_PENALTY_KEYWORDS = {"cover", "remix", "live", "karaoke", "tribute", "instrumental"}
+_PENALTY_KEYWORDS = {
+    "cover", "remix", "live", "karaoke", "tribute", "instrumental",
+    "8d", "16d", "slowed", "reverb", "sped up", "sped-up", 
+    "bass boosted", "nightcore", "daycore", "mashup", "parody", 
+    "tiktok version", "lofi", "acoustic", "pitch shifted"
+}
 
 # Preferred keywords boost a result's score.
 _BOOST_KEYWORDS = {"official", "audio", "lyrics", "vevo"}
@@ -28,20 +33,50 @@ def _score(query: str, candidate: dict) -> float:
     Score is based on:
         - Token-set ratio of query vs "Title Artist" string
         - Bonus for official / audio / vevo tags in title
-        - Penalty for cover / remix / live tags in title
+        - Penalty for cover / remix / live tags in title (dynamic)
     """
     label = f"{candidate.get('title', '')} {candidate.get('artist', '')}".lower()
     title_lower = candidate.get("title", "").lower()
+    query_lower = query.lower()
 
-    base = fuzz.token_set_ratio(query.lower(), label)
+    # 1. Base fuzzy title match
+    base = fuzz.token_set_ratio(query_lower, label)
 
-    # Apply bonuses
+    # 2. Apply title-based bonuses
     bonus = sum(8 for kw in _BOOST_KEYWORDS if kw in title_lower)
 
-    # Apply penalties
-    penalty = sum(15 for kw in _PENALTY_KEYWORDS if kw in title_lower)
+    # 3. Apply Channel Verification Bonuses
+    uploader_lower = candidate.get('artist', '').lower()
+    
+    #   A. Authority Bonus: Is it an official channel/label?
+    if any(kw in uploader_lower for kw in ['vevo', 'official', '- topic', 'music']):
+        bonus += 50
+        
+    #   B. Match Bonus: Did the user type the channel's name (the artist)?
+    clean_uploader = uploader_lower.replace('vevo', '').replace('official', '').replace('- topic', '').strip()
+    uploader_words = clean_uploader.split()
+    stop_words = {'song', 'movie', 'video', 'audio', 'from', 'the', 'hd', 'hq', 'lyrics'}
+    
+    for word in uploader_words:
+        # Match significant words in the channel name against the user's query
+        if len(word) > 2 and word not in stop_words and word in query_lower:
+            bonus += 100
+            break
 
-    return base + bonus - penalty
+    # 4. Apply title penalties (only penalize keywords the user didn't explicitly ask for)
+    # Weight increased to 40 to aggressively filter out junk variants
+    penalty = sum(
+        40 for kw in _PENALTY_KEYWORDS 
+        if kw in title_lower and kw not in query_lower
+    )
+
+    # 5. Apply explicit request bonus: If the user asked for a modifier, and this candidate has it, massive boost
+    explicit_bonus = sum(
+        50 for kw in _PENALTY_KEYWORDS
+        if kw in query_lower and kw in title_lower
+    )
+
+    return base + bonus - penalty + explicit_bonus
 
 
 def best_match(query: str, candidates: list[dict]) -> Optional[dict]:

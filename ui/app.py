@@ -38,6 +38,9 @@ from commands.prev import prev as prev_func
 from commands.theme import theme as theme_func
 from commands.lang import lang as lang_func
 from commands.eq import eq as eq_func
+from commands.reorder import reorder as reorder_func
+from commands.ask import ask as ask_func
+from commands.remove import remove as remove_func
 
 # Theme system
 from ui.themes import get_theme_css, get_theme_path, get_saved_theme
@@ -61,6 +64,9 @@ COMMAND_DISPATCH = {
     "theme":     theme_func,
     "lang":      lang_func,
     "eq":        eq_func,
+    "reorder":   reorder_func,
+    "ask":       ask_func,
+    "remove":    remove_func,
 }
 
 

@@ -15,6 +15,12 @@ SPOTIFY_REDIRECT_URI: str = os.getenv("SPOTIFY_REDIRECT_URI", "http://localhost:
 # ── Gemini (LLM) ─────────────────────────────────────────
 GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
+# ── Ollama Cloud (Multi-LLM) ─────────────────────────────
+OLLAMA_API_KEY: str = os.getenv("OLLAMA_API_KEY", "")
+OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "gemma4:31b-cloud")
+OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "https://ollama.com/v1/chat/completions") # Updated to user provided base URL
+USE_OLLAMA_FOR_SCENARIO: bool = os.getenv("USE_OLLAMA_FOR_SCENARIO", "false").lower() == "true"
+
 # ── Audio Quality Thresholds (Mbps) ──────────────────────
 QUALITY_HIGH_THRESHOLD: float = 20.0
 QUALITY_MEDIUM_THRESHOLD: float = 10.0

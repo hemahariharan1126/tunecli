@@ -182,18 +182,8 @@ class PlaybackController:
             )
             
             if not recs:
-                logging.warning("RADIO.ERR: No recommendations. Triggering bulletproof fallback.")
-                # Language-aware hard fallback to keep the queue alive
-                fallback_q = (
-                    f"{LANG_NAMES.get(self.seed_language, 'lofi').split()[0]} lofi beats"
-                    if self.seed_language and self.seed_language != 'en'
-                    else "lofi chill beats official audio"
-                )
-                song = search_song(fallback_q, lang=self.seed_language)
-                if song:
-                    self.queue_manager.add_song(song)
-                else:
-                    return
+                logging.warning("RADIO.ERR: LLM Fallback also failed to generate recommendations.")
+                return
 
             for r in recs:
                 # Search and add each to queue with language-scoped query

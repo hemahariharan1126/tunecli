@@ -222,4 +222,15 @@ class RecommenderEngine:
             else:
                 logging.warning("Fallback: No seed_video_id provided.")
             
+            # 3. Tertiary LLM Fallback
+            logging.warning("APIs failed. Engaging LLM Fallback Recommender...")
+            from api.llm_client import get_llm_client
+            llm_client = get_llm_client()
+            llm_recs = llm_client.get_similar_songs(seed_query, target_lang, limit=limit)
+            
+            if llm_recs:
+                logging.info(f"LLM Fallback generated {len(llm_recs)} recommendations.")
+                return llm_recs[:limit]
+            
+            logging.error("LLM Fallback also failed.")
             return []
