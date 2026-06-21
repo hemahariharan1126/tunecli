@@ -21,6 +21,11 @@ OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "gemma4:31b-cloud")
 OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "https://ollama.com/v1/chat/completions") # Updated to user provided base URL
 USE_OLLAMA_FOR_SCENARIO: bool = os.getenv("USE_OLLAMA_FOR_SCENARIO", "false").lower() == "true"
 
+# ── Search Backend ────────────────────────────────────────
+# "yt"      = yt-dlp 4-Stage Fallback engine (default, highest recall)
+# "ytmusic" = ytmusicapi (YouTube Music official catalog, highest precision)
+SEARCH_BACKEND: str = os.getenv("SEARCH_BACKEND", "yt").lower()
+
 # ── Audio Quality Thresholds (Mbps) ──────────────────────
 QUALITY_HIGH_THRESHOLD: float = 20.0
 QUALITY_MEDIUM_THRESHOLD: float = 10.0

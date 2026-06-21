@@ -166,8 +166,26 @@ class YTSearch:
         logging.error(f"All 4 search stages completely failed to find a match for: {query}")
         return None
 
-# Singleton instance
+# Singleton instance (yt-dlp backend)
 yt_search_engine = YTSearch()
 
 def search_song(query: str, lang: str | None = None) -> Song | None:
+    """
+    Search Router: Delegates to the active backend based on SEARCH_BACKEND config.
+    - "yt"      → 4-Stage yt-dlp engine (default, max recall)
+    - "ytmusic" → ytmusicapi engine (official catalog, max precision)
+    """
+    from config import SEARCH_BACKEND
+
+    if SEARCH_BACKEND == "ytmusic":
+        from search_engine.ytmusic_search import get_ytmusic_engine
+        engine = get_ytmusic_engine()
+        result = engine.search(query, lang=lang)
+        # If ytmusicapi returns nothing, fall back to yt-dlp gracefully
+        if result:
+            return result
+        logging.warning("[Router] ytmusicapi returned no result. Falling back to yt-dlp.")
+
+    # Default or fallback: yt-dlp 4-Stage engine
     return yt_search_engine.search(query, lang=lang)
+
