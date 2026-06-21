@@ -63,10 +63,19 @@ class StatusBar(Static):
             else "[dim]⚡EQ:OFF[/dim]"
         )
 
+        # Loop mode badge
+        repeat_mode = getattr(controller.queue_manager, "repeat_mode", "none")
+        if repeat_mode == "one":
+            loop_badge = "  [bold bright_cyan]🔂 LOOP:ONE[/bold bright_cyan]"
+        elif repeat_mode == "all":
+            loop_badge = "  [bold bright_cyan]🔁 LOOP:ALL[/bold bright_cyan]"
+        else:
+            loop_badge = ""
+
         # App name branding
         brand = "[bold bright_cyan]⚡ M! TuneCLI[/bold bright_cyan]  [dim]│[/dim]  "
 
         self.status_text = (
             brand + radio + "  " + queue + volume_str + time_str
-            + "  " + lang_badge + eq_badge
+            + "  " + lang_badge + eq_badge + loop_badge
         )

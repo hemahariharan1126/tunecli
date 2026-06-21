@@ -42,6 +42,7 @@ from commands.reorder import reorder as reorder_func
 from commands.ask import ask as ask_func
 from commands.remove import remove as remove_func
 from commands.source import source as source_func
+from commands.loop import loop as loop_func
 
 # Theme system
 from ui.themes import get_theme_css, get_theme_path, get_saved_theme
@@ -69,6 +70,7 @@ COMMAND_DISPATCH = {
     "ask":       ask_func,
     "remove":    remove_func,
     "source":    source_func,
+    "loop":      loop_func,
 }
 
 

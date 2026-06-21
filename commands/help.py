@@ -34,6 +34,8 @@ def help_command(args):
         ("M!theme <name>",         "Switch colour theme  [cyberpunk · black · red_velvet · ocean · forest · sunset · rose_gold · dracula]"),
         ("M!lang [code|reset]",    "View/override language lock  [ta · hi · te · ml · kn · en]  or reset for auto-detect"),
         ("M!eq [on|off|reset|info]","LLM-optimized per-song equalizer  [auto-applied on every track]"),
+        ("M!loop [off|one|all]",   "Loop control — off, repeat one song, or loop entire queue"),
+        ("M!source [yt|ytmusic]",  "Switch search backend — yt-dlp (default) or YouTube Music API"),
         ("M!help",                 "Display this interface"),
     ]
     
