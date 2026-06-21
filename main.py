@@ -50,10 +50,12 @@ def main():
     except Exception as e:
         print(f"FATAL.ERROR: {e}")
     finally:
-        # Cleanup player on exit
+        # Cleanup player and audio cache on exit
         controller = get_controller()
-        if controller and controller.mpv_player:
-            controller.mpv_player.terminate()
+        if controller:
+            controller.shutdown()  # Purge pre-downloaded audio cache
+            if controller.mpv_player:
+                controller.mpv_player.terminate()
 
 if __name__ == "__main__":
     main()

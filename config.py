@@ -36,6 +36,11 @@ CACHE_DIR: str = "cache"
 SONG_FEATURES_CACHE: str = f"{CACHE_DIR}/song_features.json"
 HISTORY_CACHE: str = f"{CACHE_DIR}/history.json"
 
+# ── Audio Pre-Download Cache ──────────────────────────────
+# Local disk cache for background-downloaded songs (Hybrid Playback Engine)
+AUDIO_CACHE_DIR: str = f"{CACHE_DIR}/audio"
+MAX_PREDOWNLOAD_SONGS: int = 3  # Max number of upcoming songs to pre-download
+
 # ── Database Paths ────────────────────────────────────────
 DATABASE_DIR: str = "database"
 SONGS_DB: str = f"{DATABASE_DIR}/songs.db"
