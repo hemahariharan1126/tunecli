@@ -1,26 +1,38 @@
 """
-URL Resolver — Detects and resolves YouTube URLs into Song objects.
+URL Resolver — Detects and resolves YouTube and Spotify URLs into Song objects.
 Used by the playback controller to bypass the search pipeline when
-the user provides a direct YouTube link to M!play.
+the user provides a direct link to M!play.
 
-Supported formats:
+Supported YouTube formats:
     https://www.youtube.com/watch?v=VIDEO_ID
     https://youtu.be/VIDEO_ID
     https://music.youtube.com/watch?v=VIDEO_ID
     https://www.youtube.com/shorts/VIDEO_ID
+
+Supported Spotify formats (no API key required):
+    https://open.spotify.com/track/TRACK_ID
+    https://open.spotify.com/track/TRACK_ID?si=...
 """
 
 import re
+import json
 import logging
 import yt_dlp
+import requests
 from core.song import Song
 
-# Regex that matches all YouTube URL variants
+# ── YouTube URL Detection ─────────────────────────────────────────────────────
 _YT_URL_PATTERN = re.compile(
     r"(https?://)?"
     r"(www\.)?"
     r"(youtube\.com/watch\?v=|youtu\.be/|music\.youtube\.com/watch\?v=|youtube\.com/shorts/)"
     r"[A-Za-z0-9_\-]{11}",
+    re.IGNORECASE,
+)
+
+# ── Spotify URL Detection ─────────────────────────────────────────────────────
+_SPOTIFY_TRACK_PATTERN = re.compile(
+    r"https?://open\.spotify\.com/track/[A-Za-z0-9]+",
     re.IGNORECASE,
 )
 
@@ -34,11 +46,23 @@ _YDL_META_OPTS = {
     "extractor_args": {"youtube": {"player_client": ["ios", "android"]}},
 }
 
+# HTTP headers to mimic a browser so Spotify returns full Open Graph tags
+_BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
+
+# ── YouTube ───────────────────────────────────────────────────────────────────
 
 def is_youtube_url(query: str) -> bool:
     """
     Returns True if the query string looks like a YouTube URL.
-    Pure regex — no network call, runs in microseconds.
+    Pure regex — no network call.
     """
     return bool(_YT_URL_PATTERN.search(query.strip()))
 
@@ -47,13 +71,6 @@ def resolve_url(url: str) -> Song | None:
     """
     Extract a Song object from a YouTube URL using yt-dlp.
     Returns None if extraction fails.
-
-    The returned Song has:
-        title    — raw YouTube video title
-        artist   — uploader/channel name
-        duration — track length in seconds
-        video_id — YouTube video ID
-        thumbnail — thumbnail URL
     """
     url = url.strip()
     logging.info(f"[URLResolver] Resolving YouTube URL: {url}")
@@ -88,4 +105,100 @@ def resolve_url(url: str) -> Song | None:
 
     except Exception as e:
         logging.error(f"[URLResolver] Failed to resolve '{url}': {e}")
+        return None
+
+
+# ── Spotify ───────────────────────────────────────────────────────────────────
+
+def is_spotify_url(query: str) -> bool:
+    """
+    Returns True if the query string looks like a Spotify track URL.
+    Pure regex — no network call.
+    """
+    return bool(_SPOTIFY_TRACK_PATTERN.search(query.strip()))
+
+
+def resolve_spotify_url(url: str) -> Song | None:
+    """
+    Resolve a Spotify track URL to a Song object without using the Spotify API.
+
+    How it works:
+        1. Extracts the track ID from the URL.
+        2. Fetches the Spotify embed page (server-side rendered, contains full JSON).
+        3. Parses the __NEXT_DATA__ JSON block to extract title and artists.
+        4. Delegates to our existing search_song() to find the YouTube version.
+
+    Returns a Song object on success, None on failure.
+    """
+    url = url.strip()
+    logging.info(f"[SpotifyResolver] Resolving Spotify URL: {url}")
+
+    try:
+        # ── Step 1: Extract track ID ───────────────────────────────────────
+        id_match = re.search(r"open\.spotify\.com/track/([A-Za-z0-9]+)", url)
+        if not id_match:
+            logging.error("[SpotifyResolver] Could not extract track ID from URL.")
+            return None
+        track_id = id_match.group(1)
+
+        # ── Step 2: Fetch embed page (server-side rendered with full data) ─
+        embed_url = f"https://open.spotify.com/embed/track/{track_id}"
+        response = requests.get(embed_url, headers=_BROWSER_HEADERS, timeout=10)
+        response.raise_for_status()
+
+        # ── Step 3: Parse __NEXT_DATA__ JSON block ─────────────────────────
+        next_data_match = re.search(
+            r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
+            response.text,
+            re.DOTALL,
+        )
+        if not next_data_match:
+            logging.error("[SpotifyResolver] __NEXT_DATA__ block not found in embed page.")
+            return None
+
+        data = json.loads(next_data_match.group(1))
+        entity = data["props"]["pageProps"]["state"]["data"]["entity"]
+
+        track_name  = entity.get("name", "").strip()
+        artists     = entity.get("artists", [])
+        artist_name = artists[0].get("name", "Unknown Artist").strip() if artists else "Unknown Artist"
+        # Duration is in milliseconds
+        duration_ms = entity.get("duration", 0)
+        duration_s  = int(duration_ms / 1000)
+
+        if not track_name:
+            logging.error("[SpotifyResolver] Track name is empty in JSON data.")
+            return None
+
+        logging.info(
+            f"[SpotifyResolver] Parsed: '{track_name}' by '{artist_name}' ({duration_s}s)"
+        )
+
+        # ── Step 4: Search YouTube for the official version ────────────────
+        from search_engine.yt_search import search_song
+        search_query = f"{track_name} {artist_name}"
+        logging.info(f"[SpotifyResolver] Searching YouTube for: '{search_query}'")
+
+        song = search_song(search_query)
+        if not song:
+            logging.error(f"[SpotifyResolver] YouTube search failed for: '{search_query}'")
+            return None
+
+        # If the matched YouTube duration is unknown, fill in from Spotify
+        if not song.duration and duration_s:
+            song.duration = duration_s
+
+        logging.info(
+            f"[SpotifyResolver] Matched: '{song.title}' by '{song.artist}' | id={song.video_id}"
+        )
+        return song
+
+    except (KeyError, IndexError, json.JSONDecodeError) as e:
+        logging.error(f"[SpotifyResolver] JSON parsing error: {e}")
+        return None
+    except requests.exceptions.RequestException as e:
+        logging.error(f"[SpotifyResolver] Network error fetching Spotify embed: {e}")
+        return None
+    except Exception as e:
+        logging.error(f"[SpotifyResolver] Unexpected error: {e}")
         return None
