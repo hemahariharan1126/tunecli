@@ -170,10 +170,23 @@ class PlaybackController:
             self._play_next()
 
     def play_song(self, query: str):
-        """Search for a song and start playback or add to queue."""
-        song = search_song(query)
-        if not song:
-            return f"[red]  ERR: NOT_FOUND: {query}[/red]"
+        """Search for a song and start playback or add to queue.
+        
+        Supports both text search queries and direct YouTube URLs.
+        """
+        # ── URL Gate ─────────────────────────────────────────────────────────
+        # If the user passed a YouTube URL directly, resolve it via yt-dlp
+        # and skip the 4-stage search pipeline entirely.
+        from search_engine.url_resolver import is_youtube_url, resolve_url
+        if is_youtube_url(query):
+            song = resolve_url(query)
+            if not song:
+                return "[red]  ERR: URL_RESOLVE_FAILED — Could not extract song metadata from the URL.[/red]"
+        else:
+            # ── Standard text search path ─────────────────────────────────
+            song = search_song(query)
+            if not song:
+                return f"[red]  ERR: NOT_FOUND: {query}[/red]"
 
         self.queue_manager.add_song(song)
 
