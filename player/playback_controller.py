@@ -177,15 +177,75 @@ class PlaybackController:
         # ── URL Gate ─────────────────────────────────────────────────────────
         # If the user passed a YouTube URL directly, resolve it via yt-dlp
         # and skip the 4-stage search pipeline entirely.
-        from search_engine.url_resolver import is_youtube_url, resolve_url, is_spotify_url, resolve_spotify_url
+        from search_engine.url_resolver import (
+            is_youtube_url, resolve_url,
+            is_spotify_url, resolve_spotify_url,
+            is_spotify_playlist_url, fetch_spotify_playlist_tracks,
+        )
+        from search_engine.yt_search import search_song as _search_song
+
         if is_youtube_url(query):
             song = resolve_url(query)
             if not song:
                 return "[red]  ERR: URL_RESOLVE_FAILED — Could not extract song metadata from the URL.[/red]"
+
+        elif is_spotify_playlist_url(query):
+            # ── Spotify Playlist: Background Threading ────────────────────
+            # 1. Immediately fetch all track metadata from Spotify embed (fast)
+            import re as _re
+            id_match = _re.search(r"open\.spotify\.com/playlist/([A-Za-z0-9]+)", query)
+            if not id_match:
+                return "[red]  ERR: Could not parse playlist ID from URL.[/red]"
+            playlist_id = id_match.group(1)
+
+            tracks = fetch_spotify_playlist_tracks(playlist_id)
+            if not tracks:
+                return "[red]  ERR: PLAYLIST_EMPTY — Could not fetch tracks from Spotify playlist.[/red]"
+
+            # 2. Resolve the first track immediately so playback can start
+            first = tracks[0]
+            song = _search_song(f"{first['title']} {first['artist']}")
+            if not song:
+                return f"[red]  ERR: Could not find '{first['title']}' on YouTube.[/red]"
+            if not song.duration and first["duration_s"]:
+                song.duration = first["duration_s"]
+
+            self.queue_manager.add_song(song)
+            if self.mpv_player and not self.mpv_player.is_playing():
+                self._play_next()
+
+            # 3. Resolve the rest in a background thread — queue grows silently
+            remaining = tracks[1:]
+            if remaining:
+                def _queue_remaining(rem_tracks):
+                    for t in rem_tracks:
+                        q = f"{t['title']} {t['artist']}"
+                        s = _search_song(q)
+                        if s:
+                            if not s.duration and t["duration_s"]:
+                                s.duration = t["duration_s"]
+                            self.queue_manager.add_song(s)
+
+                threading.Thread(
+                    target=_queue_remaining,
+                    args=(remaining,),
+                    daemon=True,
+                    name="playlist-queuer",
+                ).start()
+
+            return (
+                f"[bold bright_green]PLAYLIST[/bold bright_green] "
+                f"[dim]Loading[/dim] [bold white]{len(tracks)}[/bold white] "
+                f"[dim]tracks into queue...[/dim]\n"
+                f"  [bold cyan]▶[/bold cyan] [white]{song.title}[/white] "
+                f"[dim]is now playing.[/dim]"
+            )
+
         elif is_spotify_url(query):
             song = resolve_spotify_url(query)
             if not song:
                 return "[red]  ERR: SPOTIFY_RESOLVE_FAILED — Could not find song on YouTube from Spotify link.[/red]"
+
         else:
             # ── Standard text search path ─────────────────────────────────
             song = search_song(query)

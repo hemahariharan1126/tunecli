@@ -10,8 +10,8 @@ Supported YouTube formats:
     https://www.youtube.com/shorts/VIDEO_ID
 
 Supported Spotify formats (no API key required):
-    https://open.spotify.com/track/TRACK_ID
-    https://open.spotify.com/track/TRACK_ID?si=...
+    https://open.spotify.com/track/TRACK_ID        — single track
+    https://open.spotify.com/playlist/PLAYLIST_ID  — full playlist
 """
 
 import re
@@ -33,6 +33,11 @@ _YT_URL_PATTERN = re.compile(
 # ── Spotify URL Detection ─────────────────────────────────────────────────────
 _SPOTIFY_TRACK_PATTERN = re.compile(
     r"https?://open\.spotify\.com/track/[A-Za-z0-9]+",
+    re.IGNORECASE,
+)
+
+_SPOTIFY_PLAYLIST_PATTERN = re.compile(
+    r"https?://open\.spotify\.com/playlist/[A-Za-z0-9]+",
     re.IGNORECASE,
 )
 
@@ -202,3 +207,127 @@ def resolve_spotify_url(url: str) -> Song | None:
     except Exception as e:
         logging.error(f"[SpotifyResolver] Unexpected error: {e}")
         return None
+
+# ── Spotify Playlist ──────────────────────────────────────────────────────────
+
+def is_spotify_playlist_url(query: str) -> bool:
+    """
+    Returns True if the query string is a Spotify playlist URL.
+    Pure regex — no network call.
+    """
+    return bool(_SPOTIFY_PLAYLIST_PATTERN.search(query.strip()))
+
+
+def fetch_spotify_playlist_tracks(playlist_id: str) -> list[dict]:
+    """
+    Fetch all tracks from a Spotify playlist using embed page scraping.
+    No API key, no token — uses the same __NEXT_DATA__ technique as single tracks.
+
+    Returns a list of dicts: [{title, artist, duration_s}, ...]
+    Returns an empty list on failure.
+    """
+    embed_url = f"https://open.spotify.com/embed/playlist/{playlist_id}"
+    logging.info(f"[SpotifyPlaylist] Fetching embed: {embed_url}")
+
+    try:
+        response = requests.get(embed_url, headers=_BROWSER_HEADERS, timeout=15)
+        response.raise_for_status()
+
+        next_data_match = re.search(
+            r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
+            response.text, re.DOTALL,
+        )
+        if not next_data_match:
+            logging.error("[SpotifyPlaylist] __NEXT_DATA__ not found in embed page.")
+            return []
+
+        data   = json.loads(next_data_match.group(1))
+        entity = data["props"]["pageProps"]["state"]["data"]["entity"]
+
+        playlist_name = entity.get("name") or entity.get("title", "Unknown Playlist")
+        track_list    = entity.get("trackList", [])
+
+        logging.info(
+            f"[SpotifyPlaylist] '{playlist_name}' — {len(track_list)} tracks found."
+        )
+
+        tracks = []
+        for t in track_list:
+            title  = (t.get("title") or "").strip()
+            artist = (t.get("subtitle") or "").strip()
+            # duration is in milliseconds in the embed JSON
+            dur_ms = t.get("duration", 0)
+            dur_s  = int(dur_ms / 1000)
+            if title and artist:
+                tracks.append({"title": title, "artist": artist, "duration_s": dur_s})
+
+        return tracks
+
+    except (KeyError, IndexError, json.JSONDecodeError) as e:
+        logging.error(f"[SpotifyPlaylist] JSON parsing error: {e}")
+        return []
+    except requests.exceptions.RequestException as e:
+        logging.error(f"[SpotifyPlaylist] Network error: {e}")
+        return []
+    except Exception as e:
+        logging.error(f"[SpotifyPlaylist] Unexpected error: {e}")
+        return []
+
+
+def resolve_spotify_playlist(
+    url: str,
+    on_song_found: callable = None,
+) -> list[Song]:
+    """
+    Resolve a Spotify playlist URL to a list of Song objects.
+
+    Args:
+        url:          Spotify playlist URL.
+        on_song_found: Optional callback called with each Song as it is resolved.
+                       Used for background threading — allows the caller to add
+                       songs to the queue as they are found, one by one.
+
+    Returns:
+        List of successfully resolved Song objects.
+    """
+    url = url.strip()
+
+    # Step 1: Extract playlist ID
+    id_match = re.search(r"open\.spotify\.com/playlist/([A-Za-z0-9]+)", url)
+    if not id_match:
+        logging.error("[SpotifyPlaylist] Could not extract playlist ID.")
+        return []
+    playlist_id = id_match.group(1)
+
+    # Step 2: Fetch all track metadata from Spotify embed
+    tracks = fetch_spotify_playlist_tracks(playlist_id)
+    if not tracks:
+        logging.error("[SpotifyPlaylist] No tracks returned from embed.")
+        return []
+
+    # Step 3: Search YouTube for each track
+    from search_engine.yt_search import search_song
+    resolved: list[Song] = []
+
+    for i, t in enumerate(tracks):
+        search_query = f"{t['title']} {t['artist']}"
+        logging.info(
+            f"[SpotifyPlaylist] [{i+1}/{len(tracks)}] Searching: '{search_query}'"
+        )
+        song = search_song(search_query)
+        if song:
+            # Fill in Spotify duration if YouTube missed it
+            if not song.duration and t["duration_s"]:
+                song.duration = t["duration_s"]
+            resolved.append(song)
+            if on_song_found:
+                on_song_found(song)
+        else:
+            logging.warning(
+                f"[SpotifyPlaylist] YouTube search failed for: '{search_query}' — skipping."
+            )
+
+    logging.info(
+        f"[SpotifyPlaylist] Resolved {len(resolved)}/{len(tracks)} tracks."
+    )
+    return resolved
