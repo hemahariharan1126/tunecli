@@ -141,6 +141,13 @@ class TuneCLIApp(App):
             "[dim]Type [bold]M!help[/bold] to see all commands.[/dim]"
         )
 
+        def _safe_log_write(msg: str) -> None:
+            try:
+                self.call_from_thread(log.write, msg)
+            except Exception:
+                log.write(msg)
+        self.controller._app_log_callback = _safe_log_write
+
     def _update_ui(self) -> None:
         """Fetch latest state from controller and update all UI panels."""
         self.now_playing_panel.update_state(self.controller)

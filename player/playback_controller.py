@@ -59,6 +59,11 @@ class PlaybackController:
         # ── Pre-Downloader ─────────────────────────────────
         self._pre_downloader = get_pre_downloader()
 
+        # ── UI Log Callback ────────────────────────────────
+        # Set by app.py after the TUI is mounted so background threads
+        # can post messages directly to the visible log panel.
+        self._app_log_callback = None
+
         # EQ engine — LLM-driven per-song equalizer
         self.eq_engine = EQEngine()
         self.eq_enabled = True
@@ -169,6 +174,20 @@ class PlaybackController:
             logging.error(f"[AutoResume] Recovery failed: {e}. Skipping to next.")
             self._play_next()
 
+    def _post_playlist_summary(self, queued: int, total: int) -> None:
+        """Post playlist load result to the UI log."""
+        if queued == total:
+            msg = f"[bold bright_green]✔ PLAYLIST READY[/bold bright_green] All [white]{queued}/{total}[/white] tracks queued successfully."
+        else:
+            missed = total - queued
+            msg = (
+                f"[bold yellow]⚠ PLAYLIST LOADED[/bold yellow] Queued [white]{queued}/{total}[/white] songs "
+                f"([dim]{missed} not found on YouTube[/dim])."
+            )
+        logging.info(msg)
+        if hasattr(self, '_app_log_callback') and self._app_log_callback:
+            self._app_log_callback(msg)
+
     def play_song(self, query: str):
         """Search for a song and start playback or add to queue.
         
@@ -214,21 +233,51 @@ class PlaybackController:
             if self.mpv_player and not self.mpv_player.is_playing():
                 self._play_next()
 
-            # 3. Resolve the rest in a background thread — queue grows silently
+            # 3. Resolve the rest in a background thread — robust, isolated
             remaining = tracks[1:]
+            total_tracks = len(tracks)  # includes track 1 already queued
+
             if remaining:
-                def _queue_remaining(rem_tracks):
+                def _queue_remaining(rem_tracks, total):
+                    queued = 1  # Track 1 is already playing
+                    failed = 0
+
                     for t in rem_tracks:
-                        q = f"{t['title']} {t['artist']}"
-                        s = _search_song(q)
-                        if s:
-                            if not s.duration and t["duration_s"]:
-                                s.duration = t["duration_s"]
-                            self.queue_manager.add_song(s)
+                        try:
+                            # Attempt 1: full "Title Artist" query
+                            q = f"{t['title']} {t['artist']}"
+                            s = _search_song(q)
+
+                            # Attempt 2: title-only retry if full query fails
+                            if not s:
+                                logging.warning(
+                                    f"[Playlist] Retrying with title-only: '{t['title']}'"
+                                )
+                                s = _search_song(t['title'])
+
+                            if s:
+                                if not s.duration and t["duration_s"]:
+                                    s.duration = t["duration_s"]
+                                self.queue_manager.add_song(s)
+                                queued += 1
+                            else:
+                                failed += 1
+                                logging.warning(
+                                    f"[Playlist] No YouTube match for: '{t['title']}'"
+                                )
+
+                        except Exception as e:
+                            # Isolate: one bad track never kills remaining tracks
+                            failed += 1
+                            logging.error(
+                                f"[Playlist] Error queuing '{t['title']}': {e}"
+                            )
+
+                    self._post_playlist_summary(queued, total)
 
                 threading.Thread(
                     target=_queue_remaining,
-                    args=(remaining,),
+                    args=(remaining, total_tracks),
                     daemon=True,
                     name="playlist-queuer",
                 ).start()
