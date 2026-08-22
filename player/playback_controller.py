@@ -333,6 +333,17 @@ class PlaybackController:
                 f" [dim]added to queue.[/dim]{lang_notice}"
             )
 
+    def play_playlist(self, query: str):
+        """Search for a Spotify playlist by name and play it."""
+        from search_engine.url_resolver import search_spotify_playlist_by_name
+        
+        playlist_url = search_spotify_playlist_by_name(query)
+        if not playlist_url:
+            return f"[red]  ERR: NOT_FOUND: Could not find Spotify playlist for '{query}'[/red]"
+            
+        # Hand off to the existing play_song which handles Spotify playlist URLs brilliantly
+        return self.play_song(playlist_url)
+
     def _schedule_predownload(self) -> None:
         """Ask the pre-downloader to silently cache upcoming songs."""
         upcoming = self.queue_manager.get_queue()

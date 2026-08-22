@@ -331,3 +331,35 @@ def resolve_spotify_playlist(
         f"[SpotifyPlaylist] Resolved {len(resolved)}/{len(tracks)} tracks."
     )
     return resolved
+
+
+def search_spotify_playlist_by_name(query: str) -> str | None:
+    """
+    Search for a Spotify playlist by name using DuckDuckGo HTML search.
+    Returns the first matching Spotify playlist URL, or None if not found.
+    """
+    import urllib.parse
+    
+    logging.info(f"[SpotifyPlaylistSearch] Searching DuckDuckGo for: '{query}'")
+    search_query = f"site:open.spotify.com/playlist {query}"
+    ddg_url = "https://html.duckduckgo.com/html/?q=" + urllib.parse.quote(search_query)
+    
+    try:
+        r = requests.get(ddg_url, headers=_BROWSER_HEADERS, timeout=10)
+        r.raise_for_status()
+        
+        # DuckDuckGo wraps outbound links in a redirect
+        redirects = re.findall(r'uddg=([^&]+)', r.text)
+        urls = [urllib.parse.unquote(u) for u in redirects if "open.spotify.com/playlist" in urllib.parse.unquote(u)]
+        
+        if urls:
+            playlist_url = urls[0]
+            logging.info(f"[SpotifyPlaylistSearch] Found playlist: {playlist_url}")
+            return playlist_url
+        else:
+            logging.warning("[SpotifyPlaylistSearch] No Spotify playlist found in search results.")
+            return None
+            
+    except Exception as e:
+        logging.error(f"[SpotifyPlaylistSearch] Search failed: {e}")
+        return None

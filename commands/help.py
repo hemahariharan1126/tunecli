@@ -18,6 +18,7 @@ def help_command(args):
     
     commands = [
         ("M!play <song|url>",        "Play a song by name, YouTube URL, Spotify track or Spotify playlist link"),
+        ("M!play-playlist <name>", "Search and play a Spotify playlist by name"),
         ("M!pause / M!resume",     "Halt or continue playback"),
         ("M!skip / M!next",        "Jump to the next track"),
         ("M!prev",                 "Return to historical track"),

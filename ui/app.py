@@ -21,6 +21,7 @@ from ui.components.logo import LogoPanel
 
 # Command Dispatch
 from commands.play import play as play_func
+from commands.play_playlist import play_playlist as play_playlist_func
 from commands.pause import pause as pause_func
 from commands.resume import resume as resume_func
 from commands.skip import skip as skip_func
@@ -48,8 +49,9 @@ from commands.loop import loop as loop_func
 from ui.themes import get_theme_css, get_theme_path, get_saved_theme
 
 COMMAND_DISPATCH = {
-    "play":      play_func,
-    "pause":     pause_func,
+    "play":          play_func,
+    "play-playlist": play_playlist_func,
+    "pause":         pause_func,
     "resume":    resume_func,
     "skip":      skip_func,
     "stop":      stop_func,

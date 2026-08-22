@@ -10,7 +10,7 @@ from typing import Optional, List
 COMMAND_PREFIX = "M!"
 
 KNOWN_COMMANDS = {
-    "play", "pause", "resume", "skip", "stop",
+    "play", "play-playlist", "pause", "resume", "skip", "stop",
     "queue", "mood", "recommend", "volume", "help",
     "next", "prev", "radio", "find", "scenario", "theme", "lang", "eq", "reorder", "ask", "remove", "source", "loop",
 }
