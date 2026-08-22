@@ -99,6 +99,13 @@ class MPVPlayer:
         except Exception as e:
             logging.warning(f"MPV seek error: {e}")
 
+    def seek_relative(self, offset: float) -> None:
+        """Seek relatively by offset in seconds."""
+        try:
+            self.player.seek(offset, reference="relative")
+        except Exception as e:
+            logging.warning(f"MPV seek relative error: {e}")
+
     def pause(self):
         """Pause playback."""
         try:

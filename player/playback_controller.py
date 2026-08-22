@@ -453,9 +453,15 @@ class PlaybackController:
             return "[bold yellow]  [HLD] PLAYBACK.STOPPED[/bold yellow]"
 
     def resume(self):
+        """Resume playback."""
         if self.mpv_player:
             self.mpv_player.resume()
             return "[bold green]  [RUN] PLAYBACK.RESUMED[/bold green]"
+
+    def seek(self, offset: float) -> None:
+        """Seek relatively by offset in seconds (+/-)."""
+        if self.mpv_player and self.mpv_player.is_playing():
+            self.mpv_player.seek_relative(offset)
 
     def stop(self):
         if self.mpv_player:

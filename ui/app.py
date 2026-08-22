@@ -88,6 +88,8 @@ class TuneCLIApp(App):
         ("ctrl+c", "quit",             "Quit"),
         ("ctrl+q", "quit",             "Quit"),
         ("space",  "toggle_playback",  "Pause/Resume"),
+        ("right",  "seek_forward",     "Seek +5s"),
+        ("left",   "seek_backward",    "Seek -5s"),
         ("n",      "next_track",       "Next"),
         ("p",      "prev_track",       "Prev"),
         ("plus",   "volume_up",        "Vol+"),
@@ -194,6 +196,14 @@ class TuneCLIApp(App):
 
     def action_prev_track(self) -> None:
         self.controller.prev()
+        self._update_ui()
+
+    def action_seek_forward(self) -> None:
+        self.controller.seek(5)
+        self._update_ui()
+
+    def action_seek_backward(self) -> None:
+        self.controller.seek(-5)
         self._update_ui()
 
     def action_volume_up(self) -> None:
