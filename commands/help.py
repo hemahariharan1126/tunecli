@@ -38,6 +38,7 @@ def help_command(args):
         ("M!loop [off|one|all]",   "Loop control — off, repeat one song, or loop entire queue"),
         ("M!source [yt|ytmusic]",  "Switch search backend — yt-dlp (default) or YouTube Music API"),
         ("M!help",                 "Display this interface"),
+        ("M!exit / M!quit / M!end","Close the application"),
     ]
     
     for cmd, desc in commands:

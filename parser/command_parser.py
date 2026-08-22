@@ -13,6 +13,7 @@ KNOWN_COMMANDS = {
     "play", "play-playlist", "pause", "resume", "skip", "stop",
     "queue", "mood", "recommend", "volume", "help",
     "next", "prev", "radio", "find", "scenario", "theme", "lang", "eq", "reorder", "ask", "remove", "source", "loop",
+    "exit", "quit", "end"
 }
 
 

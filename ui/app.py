@@ -204,6 +204,10 @@ class TuneCLIApp(App):
             )
             return
 
+        if parsed.name in ("exit", "quit", "end"):
+            self.exit()
+            return
+
         handler = COMMAND_DISPATCH.get(parsed.name)
         if not handler:
             log_widget.write(
