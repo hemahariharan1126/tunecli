@@ -2,7 +2,6 @@
 Multi-LLM Recommendation Client — Routes scenario analysis through Ollama Cloud or Gemini.
 """
 
-import google.generativeai as genai
 import json
 import logging
 import requests
@@ -12,6 +11,7 @@ class RecommendationLLMClient:
     def __init__(self):
         self.gemini_configured = bool(GEMINI_API_KEY)
         if self.gemini_configured:
+            import google.generativeai as genai
             genai.configure(api_key=GEMINI_API_KEY)
 
     def _call_ollama(self, prompt: str) -> dict | None:
@@ -60,6 +60,7 @@ class RecommendationLLMClient:
         last_error = ""
         for model_name in models_to_try:
             try:
+                import google.generativeai as genai
                 current_model = genai.GenerativeModel(model_name)
                 logging.info(f"LLMClient: Routing scenario to Gemini ({model_name})")
                 response = current_model.generate_content(prompt)
@@ -224,7 +225,10 @@ class RecommendationLLMClient:
         return None
 
 # Singleton instance
-llm_client = RecommendationLLMClient()
+_llm_client = None
 
 def get_llm_client():
-    return llm_client
+    global _llm_client
+    if _llm_client is None:
+        _llm_client = RecommendationLLMClient()
+    return _llm_client

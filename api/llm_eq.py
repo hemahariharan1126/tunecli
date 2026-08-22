@@ -12,8 +12,6 @@ Total saving vs naive approach: ~85-90% token reduction per request.
 
 import json
 import logging
-from google import genai
-from google.genai import types
 
 from config import GEMINI_API_KEY
 
@@ -78,6 +76,7 @@ class LLMEQClient:
             logging.warning("LLMEQClient: GEMINI_API_KEY not set — will use fallback presets.")
             return
         try:
+            from google import genai
             self._client = genai.Client(api_key=GEMINI_API_KEY)
             self._ready = True
             logging.info("LLMEQClient: Gemini EQ client ready.")
@@ -99,6 +98,7 @@ class LLMEQClient:
         last_err = ""
         for model_id in MODELS_TO_TRY:
             try:
+                from google.genai import types
                 response = self._client.models.generate_content(
                     model=model_id,
                     contents=[fingerprint],
