@@ -144,3 +144,13 @@ SelectionModal {
 #cancel_btn:hover {
     background: $warning 20%;
 }
+
+/* ── Layout Fixes ─────────────────────────────────────────── */
+#main_container {
+    width: 100%;
+}
+
+Horizontal {
+    width: 100%;
+    height: 100%;
+}
