@@ -44,6 +44,7 @@ from commands.ask import ask as ask_func
 from commands.remove import remove as remove_func
 from commands.source import source as source_func
 from commands.loop import loop as loop_func
+from commands.update import update_command
 
 # Theme system
 from ui.themes import get_theme_css, get_theme_path, get_saved_theme
@@ -73,6 +74,7 @@ COMMAND_DISPATCH = {
     "remove":    remove_func,
     "source":    source_func,
     "loop":      loop_func,
+    "update":    update_command,
 }
 
 
@@ -149,6 +151,27 @@ class TuneCLIApp(App):
             except Exception:
                 log.write(msg)
         self.controller._app_log_callback = _safe_log_write
+        
+        self._check_for_updates()
+
+    @work(thread=True)
+    def _check_for_updates(self) -> None:
+        """Silently check for remote updates in the background on startup."""
+        import subprocess
+        import os
+        try:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            # Fetch silently
+            subprocess.run(["git", "fetch", "origin", "master"], cwd=base_dir, capture_output=True, timeout=10)
+            # Count behind
+            res = subprocess.run(["git", "rev-list", "--count", "HEAD..origin/master"], cwd=base_dir, capture_output=True, text=True, timeout=5)
+            count = int(res.stdout.strip())
+            if count > 0:
+                msg = f"\n[bold bright_green]↑ UPDATE AVAILABLE[/bold bright_green] There are [white]{count}[/white] new updates! Type [bold]M!update[/bold] to install them."
+                if hasattr(self.controller, "_app_log_callback") and self.controller._app_log_callback:
+                    self.controller._app_log_callback(msg)
+        except Exception:
+            pass  # Fail silently to not disturb the user if Git or network is broken
 
     def _update_ui(self) -> None:
         """Fetch latest state from controller and update all UI panels."""
