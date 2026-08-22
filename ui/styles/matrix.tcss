@@ -1,0 +1,147 @@
+/* ============================================================
+   TuneCLI — The Matrix Theme
+   Classic hacker terminal aesthetics.
+   ============================================================ */
+
+/* ── Design Tokens ────────────────────────────────────────── */
+$bg:            #0d0d0d;
+$surface:       #121812;
+$surface-hi:    #182218;
+$accent:        #00ff41;
+$accent-dim:    #008f11;
+$accent-purple: #003b00;
+$mood-pink:     #00ff99;
+$success:       #00ff41;
+$warning:       #99ff33;
+$muted:         #1c281c;
+$text:          #e0ffe0;
+$text-dim:      #008f11;
+
+
+/* ── Screen Base ──────────────────────────────────────────── */
+Screen {
+    background: $bg;
+    color: $text;
+    layers: below above;
+}
+
+/* ── Status Bar ───────────────────────────────────────────── */
+StatusBar {
+    height: 1;
+    background: $accent-purple;
+    color: $accent;
+    padding: 0 2;
+    text-style: bold;
+    dock: top;
+}
+
+/* ── Logo Panel ────────────────────────────────────────────── */
+LogoPanel {
+    height: auto;
+    dock: top;
+    background: $surface;
+    color: $accent;
+    text-style: bold;
+    padding: 1 2;
+    border-bottom: solid $muted;
+}
+
+/* ── Main Container ───────────────────────────────────────── */
+#main_container {
+    height: 1fr;
+    margin: 0;
+}
+
+/* ── Now Playing Panel ────────────────────────────────────── */
+NowPlayingPanel {
+    border: tall $accent;
+    background: $surface;
+    padding: 1 2;
+    width: 3fr;
+    height: 1fr;
+    min-height: 18;
+    color: $text;
+}
+
+NowPlayingPanel:focus {
+    border: tall $accent;
+}
+
+/* ── Queue Panel ──────────────────────────────────────────── */
+QueuePanel {
+    border: tall $accent-dim;
+    background: $surface;
+    padding: 1 2;
+    width: 2fr;
+    height: 1fr;
+    color: $text;
+}
+
+/* ── Command Input ────────────────────────────────────────── */
+#cmd_input {
+    border: tall $accent;
+    background: $surface-hi;
+    color: $text;
+    padding: 0 1;
+    margin: 0;
+}
+
+#cmd_input:focus {
+    border: tall $accent;
+}
+
+/* ── Output Log ───────────────────────────────────────────── */
+#output_log {
+    border: tall $muted;
+    background: $bg;
+    height: 13;
+    padding: 0 1;
+    color: $text-dim;
+    scrollbar-color: $accent-dim;
+    scrollbar-background: $surface;
+}
+
+/* ── Modal ────────────────────────────────────────────────── */
+SelectionModal {
+    align: center middle;
+}
+
+#modal_container {
+    width: 66;
+    height: auto;
+    max-height: 28;
+    border: double $accent;
+    background: $surface;
+    padding: 1 2;
+    align: center middle;
+}
+
+#modal_header {
+    color: $accent;
+    text-style: bold;
+    padding: 0 0 1 0;
+}
+
+#modal_rule {
+    color: $muted;
+}
+
+#selection_list {
+    margin: 1 0;
+    height: 12;
+    background: $bg;
+    border: tall $muted;
+    color: $text;
+}
+
+#cancel_btn {
+    width: 100%;
+    margin-top: 1;
+    background: $muted;
+    color: $warning;
+    border: tall $warning;
+}
+
+#cancel_btn:hover {
+    background: $warning 20%;
+}

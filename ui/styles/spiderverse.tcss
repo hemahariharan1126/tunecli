@@ -1,0 +1,147 @@
+/* ============================================================
+   TuneCLI — Into the Spider-Verse Theme
+   Comic book pop-art style.
+   ============================================================ */
+
+/* ── Design Tokens ────────────────────────────────────────── */
+$bg:            #1b002c;
+$surface:       #2a0045;
+$surface-hi:    #39005c;
+$accent:        #00f0ff;
+$accent-dim:    #ff0055;
+$accent-purple: #b300ff;
+$mood-pink:     #ff00a2;
+$success:       #39ff14;
+$warning:       #ffea00;
+$muted:         #470d6a;
+$text:          #ffffff;
+$text-dim:      #a270c7;
+
+
+/* ── Screen Base ──────────────────────────────────────────── */
+Screen {
+    background: $bg;
+    color: $text;
+    layers: below above;
+}
+
+/* ── Status Bar ───────────────────────────────────────────── */
+StatusBar {
+    height: 1;
+    background: $accent-purple;
+    color: $accent;
+    padding: 0 2;
+    text-style: bold;
+    dock: top;
+}
+
+/* ── Logo Panel ────────────────────────────────────────────── */
+LogoPanel {
+    height: auto;
+    dock: top;
+    background: $surface;
+    color: $accent;
+    text-style: bold;
+    padding: 1 2;
+    border-bottom: solid $muted;
+}
+
+/* ── Main Container ───────────────────────────────────────── */
+#main_container {
+    height: 1fr;
+    margin: 0;
+}
+
+/* ── Now Playing Panel ────────────────────────────────────── */
+NowPlayingPanel {
+    border: tall $accent;
+    background: $surface;
+    padding: 1 2;
+    width: 3fr;
+    height: 1fr;
+    min-height: 18;
+    color: $text;
+}
+
+NowPlayingPanel:focus {
+    border: tall $accent;
+}
+
+/* ── Queue Panel ──────────────────────────────────────────── */
+QueuePanel {
+    border: tall $accent-dim;
+    background: $surface;
+    padding: 1 2;
+    width: 2fr;
+    height: 1fr;
+    color: $text;
+}
+
+/* ── Command Input ────────────────────────────────────────── */
+#cmd_input {
+    border: tall $accent;
+    background: $surface-hi;
+    color: $text;
+    padding: 0 1;
+    margin: 0;
+}
+
+#cmd_input:focus {
+    border: tall $accent;
+}
+
+/* ── Output Log ───────────────────────────────────────────── */
+#output_log {
+    border: tall $muted;
+    background: $bg;
+    height: 13;
+    padding: 0 1;
+    color: $text-dim;
+    scrollbar-color: $accent-dim;
+    scrollbar-background: $surface;
+}
+
+/* ── Modal ────────────────────────────────────────────────── */
+SelectionModal {
+    align: center middle;
+}
+
+#modal_container {
+    width: 66;
+    height: auto;
+    max-height: 28;
+    border: double $accent;
+    background: $surface;
+    padding: 1 2;
+    align: center middle;
+}
+
+#modal_header {
+    color: $accent;
+    text-style: bold;
+    padding: 0 0 1 0;
+}
+
+#modal_rule {
+    color: $muted;
+}
+
+#selection_list {
+    margin: 1 0;
+    height: 12;
+    background: $bg;
+    border: tall $muted;
+    color: $text;
+}
+
+#cancel_btn {
+    width: 100%;
+    margin-top: 1;
+    background: $muted;
+    color: $warning;
+    border: tall $warning;
+}
+
+#cancel_btn:hover {
+    background: $warning 20%;
+}

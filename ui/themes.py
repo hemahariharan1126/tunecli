@@ -14,14 +14,21 @@ _ENV    = os.path.join(_ROOT, ".env")
 
 # ── Theme registry ───────────────────────────────────────────────────────────
 THEMES: dict[str, str] = {
-    "cyberpunk":  os.path.join(_STYLES, "theme.tcss"),
-    "black":      os.path.join(_STYLES, "black.tcss"),
-    "red_velvet": os.path.join(_STYLES, "red_velvet.tcss"),
-    "ocean":      os.path.join(_STYLES, "ocean.tcss"),
-    "forest":     os.path.join(_STYLES, "forest.tcss"),
-    "sunset":     os.path.join(_STYLES, "sunset.tcss"),
-    "rose_gold":  os.path.join(_STYLES, "rose_gold.tcss"),
-    "dracula":    os.path.join(_STYLES, "dracula.tcss"),
+    "cyberpunk":   os.path.join(_STYLES, "theme.tcss"),
+    "black":       os.path.join(_STYLES, "black.tcss"),
+    "red_velvet":  os.path.join(_STYLES, "red_velvet.tcss"),
+    "ocean":       os.path.join(_STYLES, "ocean.tcss"),
+    "forest":      os.path.join(_STYLES, "forest.tcss"),
+    "sunset":      os.path.join(_STYLES, "sunset.tcss"),
+    "rose_gold":   os.path.join(_STYLES, "rose_gold.tcss"),
+    "dracula":     os.path.join(_STYLES, "dracula.tcss"),
+    
+    # Cinematic Themes
+    "jarvis":      os.path.join(_STYLES, "jarvis.tcss"),
+    "matrix":      os.path.join(_STYLES, "matrix.tcss"),
+    "batman":      os.path.join(_STYLES, "batman.tcss"),
+    "bladerunner": os.path.join(_STYLES, "bladerunner.tcss"),
+    "spiderverse": os.path.join(_STYLES, "spiderverse.tcss"),
 }
 
 AVAILABLE_THEMES: list[str] = list(THEMES.keys())
