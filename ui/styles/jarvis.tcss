@@ -1,21 +1,21 @@
 /* ============================================================
    TuneCLI — Iron Man / JARVIS Theme
-   High-tech gold, crimson, and holographic blue.
+   High-tech holographic AI assistant.
    ============================================================ */
 
 /* ── Design Tokens ────────────────────────────────────────── */
-$bg:            #1a0f0f;
-$surface:       #2a1215;
-$surface-hi:    #3a151b;
-$accent:        #e5a93d;
-$accent-dim:    #00ffff;
-$accent-purple: #8b0000;
+$bg:            #000511;
+$surface:       #011126;
+$surface-hi:    #03264a;
+$accent:        #00e5ff;
+$accent-dim:    #00a6c2;
+$accent-purple: #007799;
 $mood-pink:     #ff4500;
-$success:       #00ffcc;
-$warning:       #ffd700;
-$muted:         #3e1e22;
-$text:          #f0f0f0;
-$text-dim:      #8ab4f8;
+$success:       #00ff9f;
+$warning:       #ffb300;
+$muted:         #021b33;
+$text:          #e0ffff;
+$text-dim:      #7ab5d6;
 
 
 /* ── Screen Base ──────────────────────────────────────────── */

@@ -4,16 +4,16 @@
    ============================================================ */
 
 /* ── Design Tokens ────────────────────────────────────────── */
-$bg:            #1b002c;
-$surface:       #2a0045;
-$surface-hi:    #39005c;
-$accent:        #00f0ff;
-$accent-dim:    #ff0055;
-$accent-purple: #b300ff;
+$bg:            #17002e;
+$surface:       #240141;
+$surface-hi:    #35005d;
+$accent:        #ff003c;
+$accent-dim:    #00f0ff;
+$accent-purple: #ffe600;
 $mood-pink:     #ff00a2;
 $success:       #39ff14;
 $warning:       #ffea00;
-$muted:         #470d6a;
+$muted:         #2d054d;
 $text:          #ffffff;
 $text-dim:      #a270c7;
 
