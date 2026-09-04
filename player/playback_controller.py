@@ -212,10 +212,13 @@ class PlaybackController:
             # ── Spotify Playlist: Background Threading ────────────────────
             # 1. Immediately fetch all track metadata from Spotify embed (fast)
             import re as _re
+            from utils.history_manager import add_history_entry
+            
             id_match = _re.search(r"open\.spotify\.com/playlist/([A-Za-z0-9]+)", query)
             if not id_match:
                 return "[red]  ERR: Could not parse playlist ID from URL.[/red]"
             playlist_id = id_match.group(1)
+            add_history_entry("playlist", "Spotify Playlist", "", query)
 
             tracks = fetch_spotify_playlist_tracks(playlist_id)
             if not tracks:
@@ -302,6 +305,8 @@ class PlaybackController:
                 return f"[red]  ERR: NOT_FOUND: {query}[/red]"
 
         self.queue_manager.add_song(song)
+        from utils.history_manager import add_history_entry
+        add_history_entry("song", song.title, song.artist, f"{song.title} {song.artist}")
 
         # ── Language detection: lock on the very first song ─────────────────
         lang_notice = ""
@@ -340,6 +345,9 @@ class PlaybackController:
         playlist_url = search_spotify_playlist_by_name(query)
         if not playlist_url:
             return f"[red]  ERR: NOT_FOUND: Could not find Spotify playlist for '{query}'[/red]"
+            
+        from utils.history_manager import add_history_entry
+        add_history_entry("playlist", f"Playlist: {query}", "", query)
             
         # Hand off to the existing play_song which handles Spotify playlist URLs brilliantly
         return self.play_song(playlist_url)

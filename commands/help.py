@@ -23,6 +23,7 @@ def help_command(args):
         ("M!skip / M!next",        "Jump to the next track"),
         ("M!prev",                 "Return to historical track"),
         ("M!stop",                 "Stop playback & clear queue"),
+        ("M!hist",                 "View and replay previously played songs/playlists"),
         ("M!ask <prompt>",         "Identify and play a song from a description/lyrics"),
         ("M!queue",                "Visualize current track sequence"),
         ("M!mood <type>",          "Bias search results by vibe"),

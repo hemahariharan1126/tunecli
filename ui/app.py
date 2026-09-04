@@ -45,6 +45,7 @@ from commands.remove import remove as remove_func
 from commands.source import source as source_func
 from commands.loop import loop as loop_func
 from commands.update import update_command
+from commands.hist import show_history as hist_func
 
 # Theme system
 from ui.themes import get_theme_css, get_theme_path, get_saved_theme
@@ -75,6 +76,7 @@ COMMAND_DISPATCH = {
     "source":    source_func,
     "loop":      loop_func,
     "update":    update_command,
+    "hist":      hist_func,
 }
 
 
@@ -289,8 +291,17 @@ class TuneCLIApp(App):
         def handle_selection(index: int) -> None:
             if index >= 0:
                 selected = options[index]
-                query    = f"{selected['title']} {selected['artist']}"
-                self.run_command_worker(COMMAND_DISPATCH["play"], [query], "play")
+                cmd_name = selected.get("command", "play")
+                
+                if cmd_name == "play-playlist":
+                    query = selected.get("query", selected['title'])
+                    self.run_command_worker(COMMAND_DISPATCH["play-playlist"], [query], "play-playlist")
+                else:
+                    if "query" in selected and selected["query"]:
+                        query = selected["query"]
+                    else:
+                        query = f"{selected['title']} {selected['artist']}"
+                    self.run_command_worker(COMMAND_DISPATCH["play"], [query], "play")
             else:
                 self.query_one("#output_log", RichLog).write(
                     "[dim]  ✕ Selection cancelled.[/dim]"
