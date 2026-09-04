@@ -29,31 +29,31 @@ if not exist ".env" (
 )
 
 :: 3. Create Virtual Environment if it doesn't exist
-if not exist "venv\" (
-    echo [INFO] First time setup detected.
-    echo [INFO] Creating isolated Virtual Environment...
-    python -m venv venv
-    if %errorlevel% neq 0 (
-        echo [ERROR] Failed to create virtual environment.
-        pause
-        exit /b 1
-    )
+if exist "venv\" goto skip_venv
+echo [INFO] First time setup detected.
+echo [INFO] Creating isolated Virtual Environment...
+python -m venv venv
+if errorlevel 1 (
+    echo [ERROR] Failed to create virtual environment.
+    pause
+    exit /b 1
 )
+:skip_venv
 
 :: Activate the virtual environment
 call venv\Scripts\activate
 
 :: 4. Check if core requirements are installed by testing for 'textual'
 python -c "import textual" >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [INFO] Installing required dependencies... This may take a minute.
-    pip install -r requirements.txt
-    if %errorlevel% neq 0 (
-        echo [ERROR] Failed to install dependencies.
-        pause
-        exit /b 1
-    )
+if not errorlevel 1 goto skip_install
+echo [INFO] Installing required dependencies... This may take a minute.
+pip install -r requirements.txt
+if errorlevel 1 (
+    echo [ERROR] Failed to install dependencies.
+    pause
+    exit /b 1
 )
+:skip_install
 
 :: 5. Launch the application
 echo [INFO] Launching Application...
