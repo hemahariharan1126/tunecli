@@ -20,6 +20,7 @@ rapidfuzz
 sounddevice==0.4.6
 soundfile==0.12.1
 shazamio>=0.6.0
+audioop-lts
 numpy
 
 

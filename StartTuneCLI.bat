@@ -43,8 +43,8 @@ if errorlevel 1 (
 :: Activate the virtual environment
 call venv\Scripts\activate
 
-:: 4. Check if core requirements are installed by testing for 'textual'
-python -c "import textual" >nul 2>&1
+:: 4. Check if core requirements are installed by testing for 'textual' and 'audioop'
+python -c "import textual, audioop" >nul 2>&1
 if not errorlevel 1 goto skip_install
 echo [INFO] Installing required dependencies... This may take a minute.
 pip install -r requirements.txt
