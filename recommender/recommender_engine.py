@@ -204,9 +204,14 @@ class RecommenderEngine:
             from api.ytmusic_client import YTMusicClient
             yt_client = YTMusicClient()
             
+            if not seed_video_id:
+                found_song = yt_client.search_song(seed_query)
+                if found_song:
+                    seed_video_id = found_song.get("video_id")
+
             if seed_video_id:
                 logging.info(f"Fallback: Searching YTMusic recommendations for video_id: {seed_video_id}")
-                recs = yt_client.get_recommendations(seed_video_id)
+                recs = yt_client.get_recommendations(seed_video_id, limit=limit * 2)
                 if recs:
                     logging.info(f"Fallback: Found {len(recs)} tracks on YTMusic.")
                     formatted = [{"title": r["title"], "artist": r["artist"]} for r in recs]
@@ -214,13 +219,14 @@ class RecommenderEngine:
                     # Apply Language Guard to fallback
                     if target_lang:
                         filtered = [r for r in formatted if self.detect_language(f"{r['title']} {r['artist']}") == target_lang]
-                        return filtered[:limit]
+                        if filtered:
+                            return filtered[:limit]
                     
                     return formatted[:limit]
                 else:
                     logging.warning("Fallback: YTMusic returned no recommendations.")
             else:
-                logging.warning("Fallback: No seed_video_id provided.")
+                logging.warning("Fallback: No seed_video_id available.")
             
             # 3. Tertiary LLM Fallback
             logging.warning("APIs failed. Engaging LLM Fallback Recommender...")

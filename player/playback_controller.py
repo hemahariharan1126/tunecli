@@ -300,6 +300,12 @@ class PlaybackController:
 
         else:
             # ── Standard text search path ─────────────────────────────────
+            clean_q = query.strip()
+            if clean_q.lower().endswith(" playlist"):
+                p_name = clean_q[:-9].strip()
+                if p_name:
+                    return self.play_playlist(p_name)
+
             song = search_song(query)
             if not song:
                 return f"[red]  ERR: NOT_FOUND: {query}[/red]"
@@ -339,18 +345,82 @@ class PlaybackController:
             )
 
     def play_playlist(self, query: str):
-        """Search for a Spotify playlist by name and play it."""
-        from search_engine.url_resolver import search_spotify_playlist_by_name
-        
-        playlist_url = search_spotify_playlist_by_name(query)
-        if not playlist_url:
-            return f"[red]  ERR: NOT_FOUND: Could not find Spotify playlist for '{query}'[/red]"
-            
+        """Search for a playlist by name and queue its tracks."""
+        from search_engine.url_resolver import is_spotify_playlist_url
         from utils.history_manager import add_history_entry
-        add_history_entry("playlist", f"Playlist: {query}", "", query)
-            
-        # Hand off to the existing play_song which handles Spotify playlist URLs brilliantly
-        return self.play_song(playlist_url)
+
+        query_clean = query.strip()
+        if is_spotify_playlist_url(query_clean):
+            return self.play_song(query_clean)
+
+        # 1. Search YouTube Music official catalog for playlist
+        from api.ytmusic_client import YTMusicClient
+        yt_client = YTMusicClient()
+        yt_playlist = yt_client.search_playlist(query_clean)
+
+        if yt_playlist and yt_playlist.get("tracks"):
+            tracks = yt_playlist["tracks"]
+            title = yt_playlist["title"]
+            add_history_entry("playlist", f"Playlist: {title}", "", query_clean)
+
+            first = tracks[0]
+            from core.song import Song
+            first_song = Song(
+                title=first["title"],
+                artist=first["artist"],
+                duration=first.get("duration_s", 0),
+                stream_url=f"https://music.youtube.com/watch?v={first['videoId']}",
+                video_id=first["videoId"],
+            )
+
+            self.queue_manager.add_song(first_song)
+            if self.mpv_player and not self.mpv_player.is_playing():
+                self._play_next()
+
+            remaining = tracks[1:]
+            total_tracks = len(tracks)
+
+            if remaining:
+                def _queue_yt_remaining(rem_tracks, total):
+                    queued = 1
+                    for t in rem_tracks:
+                        try:
+                            s = Song(
+                                title=t["title"],
+                                artist=t["artist"],
+                                duration=t.get("duration_s", 0),
+                                stream_url=f"https://music.youtube.com/watch?v={t['videoId']}",
+                                video_id=t["videoId"],
+                            )
+                            self.queue_manager.add_song(s)
+                            queued += 1
+                        except Exception as e:
+                            logging.error(f"[Playlist] Error queuing track: {e}")
+                    self._post_playlist_summary(queued, total)
+
+                threading.Thread(
+                    target=_queue_yt_remaining,
+                    args=(remaining, total_tracks),
+                    daemon=True,
+                    name="playlist-queuer",
+                ).start()
+
+            return (
+                f"[bold bright_green]PLAYLIST[/bold bright_green] "
+                f"[dim]Loading[/dim] [bold white]{len(tracks)}[/bold white] "
+                f"[dim]tracks from [/dim][bold cyan]{title}[/bold cyan] [dim]into queue...[/dim]\n"
+                f"  [bold cyan]▶[/bold cyan] [white]{first_song.title}[/white] "
+                f"[dim]is now playing.[/dim]"
+            )
+
+        # 2. Fallback: Search Spotify playlist by name
+        from search_engine.url_resolver import search_spotify_playlist_by_name
+        playlist_url = search_spotify_playlist_by_name(query_clean)
+        if playlist_url:
+            add_history_entry("playlist", f"Playlist: {query_clean}", "", query_clean)
+            return self.play_song(playlist_url)
+
+        return f"[red]  ERR: NOT_FOUND: Could not find playlist for '{query_clean}'[/red]"
 
     def _schedule_predownload(self) -> None:
         """Ask the pre-downloader to silently cache upcoming songs."""
