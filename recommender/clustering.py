@@ -3,17 +3,19 @@ K-Means Clustering — Groups songs into mood clusters to optimize recommendatio
 """
 
 import numpy as np
-from sklearn.cluster import KMeans
 from config import N_CLUSTERS
 
 
 class SongClusterer:
     def __init__(self):
-        self._model = KMeans(n_clusters=N_CLUSTERS, random_state=42, n_init="auto")
+        self._model = None
         self._fitted = False
 
     def fit(self, feature_matrix: np.ndarray):
         """Fit K-Means on a 2D array of shape (n_songs, n_features)."""
+        from sklearn.cluster import KMeans
+        if self._model is None:
+            self._model = KMeans(n_clusters=N_CLUSTERS, random_state=42, n_init="auto")
         self._model.fit(feature_matrix)
         self._fitted = True
 

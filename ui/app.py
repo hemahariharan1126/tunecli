@@ -19,65 +19,69 @@ from ui.components.modal import SelectionModal
 from ui.components.status_bar import StatusBar
 from ui.components.logo import LogoPanel
 
-# Command Dispatch
-from commands.play import play as play_func
-from commands.play_playlist import play_playlist as play_playlist_func
-from commands.pause import pause as pause_func
-from commands.resume import resume as resume_func
-from commands.skip import skip as skip_func
-from commands.stop import stop as stop_func
-from commands.queue import show_queue
-from commands.mood import mood as mood_func
-from commands.recommend import recommend as recommend_func
-from commands.volume import volume as volume_func
-from commands.help import help_command
-from commands.find import find as find_func
-from commands.scenario import scenario as scenario_func
-from commands.radio import radio as radio_func
-from commands.next import next_command
-from commands.prev import prev as prev_func
-from commands.theme import theme as theme_func
-from commands.lang import lang as lang_func
-from commands.eq import eq as eq_func
-from commands.reorder import reorder as reorder_func
-from commands.ask import ask as ask_func
-from commands.remove import remove as remove_func
-from commands.source import source as source_func
-from commands.loop import loop as loop_func
-from commands.update import update_command
-from commands.hist import show_history as hist_func
-
 # Theme system
 from ui.themes import get_theme_css, get_theme_path, get_saved_theme
+import importlib
 
-COMMAND_DISPATCH = {
-    "play":          play_func,
-    "play-playlist": play_playlist_func,
-    "pause":         pause_func,
-    "resume":    resume_func,
-    "skip":      skip_func,
-    "stop":      stop_func,
-    "queue":     show_queue,
-    "mood":      mood_func,
-    "recommend": recommend_func,
-    "volume":    volume_func,
-    "help":      help_command,
-    "find":      find_func,
-    "scenario":  scenario_func,
-    "radio":     radio_func,
-    "next":      next_command,
-    "prev":      prev_func,
-    "theme":     theme_func,
-    "lang":      lang_func,
-    "eq":        eq_func,
-    "reorder":   reorder_func,
-    "ask":       ask_func,
-    "remove":    remove_func,
-    "source":    source_func,
-    "loop":      loop_func,
-    "update":    update_command,
-    "hist":      hist_func,
+# Lazy Command Dispatcher mapping command name to (module_name, function_name)
+_COMMAND_REGISTRY = {
+    "play":          ("commands.play", "play"),
+    "play-playlist": ("commands.play_playlist", "play_playlist"),
+    "pause":         ("commands.pause", "pause"),
+    "resume":        ("commands.resume", "resume"),
+    "skip":          ("commands.skip", "skip"),
+    "stop":          ("commands.stop", "stop"),
+    "queue":         ("commands.queue", "show_queue"),
+    "mood":          ("commands.mood", "mood"),
+    "recommend":     ("commands.recommend", "recommend"),
+    "volume":        ("commands.volume", "volume"),
+    "help":          ("commands.help", "help_command"),
+    "find":          ("commands.find", "find"),
+    "scenario":      ("commands.scenario", "scenario"),
+    "radio":         ("commands.radio", "radio"),
+    "next":          ("commands.next", "next_command"),
+    "prev":          ("commands.prev", "prev"),
+    "theme":         ("commands.theme", "theme"),
+    "lang":          ("commands.lang", "lang"),
+    "eq":            ("commands.eq", "eq"),
+    "reorder":       ("commands.reorder", "reorder"),
+    "ask":           ("commands.ask", "ask"),
+    "remove":        ("commands.remove", "remove"),
+    "source":        ("commands.source", "source"),
+    "loop":          ("commands.loop", "loop"),
+    "update":        ("commands.update", "update_command"),
+    "hist":          ("commands.hist", "show_history"),
 }
+
+class _LazyCommandDispatch(dict):
+    """Lazy dictionary that imports command modules only upon first execution."""
+    def __init__(self, registry: dict):
+        super().__init__()
+        self._registry = registry
+        self._cache = {}
+
+    def __contains__(self, key):
+        return key in self._registry
+
+    def keys(self):
+        return self._registry.keys()
+
+    def get(self, key, default=None):
+        if key not in self._registry:
+            return default
+        if key not in self._cache:
+            mod_name, func_name = self._registry[key]
+            mod = importlib.import_module(mod_name)
+            self._cache[key] = getattr(mod, func_name)
+        return self._cache[key]
+
+    def __getitem__(self, key):
+        handler = self.get(key)
+        if handler is None:
+            raise KeyError(key)
+        return handler
+
+COMMAND_DISPATCH = _LazyCommandDispatch(_COMMAND_REGISTRY)
 
 
 class TuneCLIApp(App):

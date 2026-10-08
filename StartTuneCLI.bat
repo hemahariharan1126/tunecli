@@ -43,9 +43,13 @@ if errorlevel 1 (
 :: Activate the virtual environment
 call venv\Scripts\activate
 
-:: 4. Check if core requirements are installed by testing for 'textual' and 'audioop'
+:: 4. Check if core requirements are installed
+if exist "venv\.installed" goto skip_install
 python -c "import textual, audioop" >nul 2>&1
-if not errorlevel 1 goto skip_install
+if not errorlevel 1 (
+    type nul > "venv\.installed"
+    goto skip_install
+)
 echo [INFO] Installing required dependencies... This may take a minute.
 pip install -r requirements.txt
 if errorlevel 1 (
@@ -53,6 +57,7 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+type nul > "venv\.installed"
 :skip_install
 
 :: 5. Launch the application
