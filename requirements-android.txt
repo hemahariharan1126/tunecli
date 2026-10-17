@@ -1,0 +1,25 @@
+# TuneCLI Android (Termux) Dependencies
+# Optimized for minimal footprint and zero C-extension build issues on ARM/Android
+
+# Core API Integrations
+spotipy==2.25.1
+ytmusicapi==1.11.1
+
+# Terminal UI
+rich==14.3.3
+textual==8.0.2
+
+# Audio Streaming & URL Resolution
+yt-dlp
+rapidfuzz
+
+# Networking & Gemini AI
+requests>=2.31.0
+google-genai
+google-generativeai
+
+# Utilities
+python-dotenv==1.2.1
+loguru==0.7.3
+langdetect==1.0.9
+numpy

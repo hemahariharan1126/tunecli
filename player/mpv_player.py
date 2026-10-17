@@ -3,7 +3,10 @@ MPV Player — Wrapper around python-mpv for audio playback.
 Supports direct stream URLs, local file playback, and EQ.
 """
 
-import mpv
+try:
+    import mpv
+except ImportError:
+    mpv = None
 import logging
 from core.song import Song
 
@@ -209,11 +212,8 @@ class MPVPlayer:
         """Cleanup MPV instance."""
         self.player.terminate()
 
-# Singleton instance
-player_instance = None
-
+# Singleton instance & Factory delegation
 def get_player():
-    global player_instance
-    if player_instance is None:
-        player_instance = MPVPlayer()
-    return player_instance
+    """Retrieve player instance via player_factory for cross-platform compatibility."""
+    from player.player_factory import get_player as factory_get_player
+    return factory_get_player()

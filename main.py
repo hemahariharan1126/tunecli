@@ -37,8 +37,23 @@ from ui.app import TuneCLIApp
 # Suppress all logging except critical errors to keep TUI clean
 logging.basicConfig(level=logging.CRITICAL)
 
+import shutil
+import subprocess
+
+def _manage_wake_lock(lock: bool):
+    """Acquire or release Termux wake-lock to prevent Android Doze mode from stopping audio."""
+    cmd = "termux-wake-lock" if lock else "termux-wake-unlock"
+    if shutil.which(cmd):
+        try:
+            subprocess.run([cmd], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+
 def main():
     """Launch the reactive TuneCLI Terminal Application."""
+    # Acquire wake-lock if on Termux/Android
+    _manage_wake_lock(True)
+
     # Import AFTER PATH is set so libmpv-2.dll is discoverable
     from player.playback_controller import get_controller
 
@@ -50,6 +65,9 @@ def main():
     except Exception as e:
         print(f"FATAL.ERROR: {e}")
     finally:
+        # Release wake-lock
+        _manage_wake_lock(False)
+
         # Cleanup player and audio cache on exit
         controller = get_controller()
         if controller:
@@ -59,3 +77,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
