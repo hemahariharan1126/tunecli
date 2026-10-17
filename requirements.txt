@@ -33,3 +33,4 @@ google-generativeai
 python-dotenv==1.2.1
 loguru==0.7.3
 langdetect==1.0.9
+pynput>=1.7.6

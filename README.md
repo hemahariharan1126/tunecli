@@ -106,13 +106,20 @@ Navigate TuneCLI using an intuitive, context-aware command parser prefixed with 
 <details>
 <summary><b>View standard playback controls</b></summary>
 
-- `M!pause` / `M!resume`: Control playback lifecycle.
-- `M!skip` / `M!prev`: Navigate the dynamic queue.
+- `M!pause` / `M!resume`: Control playback lifecycle (or press Space, or Bluetooth button).
+- `M!skip` / `M!next`: Jump to next track (or press `n`, or Bluetooth next).
+- `M!prev`: Return to historical track (or press `p`, or Bluetooth prev).
+- `M!shuffle [on|off]`: Toggle or set random queue playback (or press `s`).
+- `M!seek <time|pos>`: Jump position (e.g. `1:30`, `+30`, `-15`, `50%`, or `Shift+Right`/`Shift+Left`).
+- `M!speed <rate>`: Control playback speed (0.25x to 4.0x, or `normal`).
+- `M!sleep <minutes|off>`: Schedule auto-stop timer (e.g. `30`, `1h`, or `off`).
+- `M!crossfade <sec|off>`: Smooth track transitions with fade-in (1-10s).
 - `M!queue`: View the up-next state tree.
 - `M!remove <index>`: Delete a specific song from the upcoming queue.
 - `M!reorder <from> <to>`: Move a song within the queue.
-- `M!volume <0-100>`: Manipulate the MPV audio bus.
+- `M!volume <0-100>`: Manipulate the MPV audio bus (or keyboard volume keys).
 - `M!help`: Advanced command syntax reference.
+- **Hardware & Bluetooth Controls**: Global support for Bluetooth headsets (Play/Pause, Next, Prev) and keyboard media keys via OS-level event bridging.
 </details>
 
 ---

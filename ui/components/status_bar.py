@@ -72,10 +72,39 @@ class StatusBar(Static):
         else:
             loop_badge = ""
 
+        # Shuffle mode badge
+        shuffle_badge = (
+            "  [bold bright_cyan]🔀 SHUFFLE[/bold bright_cyan]"
+            if getattr(controller.queue_manager, "shuffle_mode", False)
+            else ""
+        )
+
+        # Speed badge (only if non-1.0x)
+        speed = 1.0
+        if controller.mpv_player and hasattr(controller.mpv_player, "get_speed"):
+            speed = controller.mpv_player.get_speed()
+        speed_badge = f"  [bold yellow]⚡{speed:.1f}×[/bold yellow]" if abs(speed - 1.0) > 0.05 else ""
+
+        # Sleep timer badge
+        sleep_badge = ""
+        try:
+            from commands.sleep import get_sleep_remaining
+            rem = get_sleep_remaining()
+            if rem and rem > 0:
+                rm, _ = divmod(int(rem), 60)
+                sleep_badge = f"  [bold yellow]🌙{rm}m[/bold yellow]"
+        except Exception:
+            pass
+
+        # Crossfade badge
+        cf = getattr(controller, "crossfade_seconds", 0)
+        cf_badge = f"  [dim]〰{cf}s[/dim]" if cf > 0 else ""
+
         # App name branding
         brand = "[bold bright_cyan]⚡ M! TuneCLI[/bold bright_cyan]  [dim]│[/dim]  "
 
         self.status_text = (
             brand + radio + "  " + queue + volume_str + time_str
-            + "  " + lang_badge + eq_badge + loop_badge
+            + "  " + lang_badge + eq_badge + loop_badge + shuffle_badge
+            + speed_badge + sleep_badge + cf_badge
         )

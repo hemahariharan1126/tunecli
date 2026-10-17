@@ -11,6 +11,7 @@ from player.queue_manager import QueueManager
 from player.pre_downloader import get_pre_downloader
 from search_engine.yt_search import search_song
 from equalizer.eq_engine import EQEngine
+from player.smtc_bridge import MediaKeyBridge
 import logging
 import time
 import threading
@@ -67,6 +68,12 @@ class PlaybackController:
         # EQ engine — LLM-driven per-song equalizer
         self.eq_engine = EQEngine()
         self.eq_enabled = True
+
+        # ── Crossfade & Playback Settings ──────────────────
+        self.crossfade_seconds = 0
+
+        # ── Hardware & Bluetooth Media Key Bridge ─────────
+        self.media_key_bridge = MediaKeyBridge(self)
         
         # Register for auto-play when a song ends
         if self.mpv_player:
@@ -451,6 +458,10 @@ class PlaybackController:
                 logging.info(f"[Hybrid] Streaming: {next_song.title}")
                 self.mpv_player.play(next_song)
 
+            # Apply crossfade (fade-in) if enabled
+            if getattr(self, "crossfade_seconds", 0) > 0 and hasattr(self.mpv_player, "apply_fade_in"):
+                self.mpv_player.apply_fade_in(self.crossfade_seconds)
+
             # Schedule the next batch of songs for pre-downloading
             self._schedule_predownload()
 
@@ -581,6 +592,8 @@ class PlaybackController:
 
     def shutdown(self):
         """Clean up resources on app exit."""
+        if hasattr(self, "media_key_bridge") and self.media_key_bridge:
+            self.media_key_bridge.stop()
         self._pre_downloader.purge_all()
 
 # Global controller instance

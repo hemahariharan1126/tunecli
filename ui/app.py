@@ -51,6 +51,11 @@ _COMMAND_REGISTRY = {
     "loop":          ("commands.loop", "loop"),
     "update":        ("commands.update", "update_command"),
     "hist":          ("commands.hist", "show_history"),
+    "shuffle":       ("commands.shuffle", "shuffle"),
+    "seek":          ("commands.seek", "seek"),
+    "speed":         ("commands.speed", "speed"),
+    "sleep":         ("commands.sleep", "sleep"),
+    "crossfade":     ("commands.crossfade", "crossfade"),
 }
 
 class _LazyCommandDispatch(dict):
@@ -100,6 +105,9 @@ class TuneCLIApp(App):
         ("p",      "prev_track",       "Prev"),
         ("plus",   "volume_up",        "Vol+"),
         ("minus",  "volume_down",      "Vol-"),
+        ("s",      "toggle_shuffle",   "Shuffle"),
+        ("shift+right", "seek_fwd_30", "Seek +30s"),
+        ("shift+left",  "seek_bwd_30", "Seek -30s"),
     ]
 
     def __init__(self):
@@ -222,6 +230,24 @@ class TuneCLIApp(App):
         if self.controller.mpv_player:
             vol = self.controller.mpv_player.get_volume()
             self.controller.set_volume(max(vol - 5, 0))
+        self._update_ui()
+
+    def action_toggle_shuffle(self) -> None:
+        qm = self.controller.queue_manager
+        qm.shuffle_mode = not qm.shuffle_mode
+        log = self.query_one("#output_log", RichLog)
+        if qm.shuffle_mode:
+            log.write("[bold bright_cyan]🔀 SHUFFLE:ON[/bold bright_cyan] [dim]Queue will play in random order.[/dim]")
+        else:
+            log.write("[dim]🔀 SHUFFLE:OFF[/dim] [dim]Queue will play in order.[/dim]")
+        self._update_ui()
+
+    def action_seek_fwd_30(self) -> None:
+        self.controller.seek(30)
+        self._update_ui()
+
+    def action_seek_bwd_30(self) -> None:
+        self.controller.seek(-30)
         self._update_ui()
 
     # ── Command input ─────────────────────────────────────────

@@ -170,6 +170,29 @@ class MPVPlayer:
         except:
             return 0.0
 
+    def set_speed(self, rate: float) -> None:
+        """Set playback speed (0.25 to 4.0). 1.0 is normal speed."""
+        try:
+            self.player.speed = max(0.25, min(4.0, rate))
+        except Exception as e:
+            logging.error(f"MPV speed error: {e}")
+
+    def get_speed(self) -> float:
+        """Get current playback speed."""
+        try:
+            return float(self.player.speed) if self.player.speed is not None else 1.0
+        except:
+            return 1.0
+
+    def apply_fade_in(self, seconds: int) -> None:
+        """Apply an audio fade-in effect at track start."""
+        if seconds <= 0:
+            return
+        try:
+            self.player.command("af", "add", f"lavfi=[afade=t=in:ss=0:d={seconds}]")
+        except Exception as e:
+            logging.debug(f"MPV fade-in error: {e}")
+
     def set_eq(self, bands: list[int]) -> None:
         """
         Apply a 10-band equalizer using MPV's lavfi audio filter.
