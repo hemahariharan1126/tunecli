@@ -9,16 +9,9 @@ import tempfile
 import os
 import logging
 import numpy as np
-try:
-    import sounddevice as sd
-    import soundfile as sf
-    from shazamio import Shazam
-    AUDIO_CAPTURE_AVAILABLE = True
-except ImportError:
-    sd = None
-    sf = None
-    Shazam = None
-    AUDIO_CAPTURE_AVAILABLE = False
+import sounddevice as sd
+import soundfile as sf
+from shazamio import Shazam
 
 
 def _find_loopback_device() -> int | None:
@@ -44,11 +37,6 @@ def find(args: list[str] | None = None):
     - M!find sys: Records internal audio from Stereo Mix
     """
     args = args or []
-    if not AUDIO_CAPTURE_AVAILABLE:
-        return (
-            "[yellow]⚠️ Audio recognition is disabled in this environment.[/yellow]\n"
-            "[dim]PortAudio / sounddevice is not installed. Use 'M!play <song name>' instead.[/dim]"
-        )
     args_lower = [a.lower() for a in args]
 
     # Parse duration (default: 7 seconds, clamped between 4 and 15)

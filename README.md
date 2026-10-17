@@ -59,35 +59,17 @@ A fully reactive, multi-zone Textual TUI with a live status bar HUD, animated vi
 
 ### Setup
 
-#### Desktop (Windows / Linux / macOS)
 ```bash
 # 1. Clone the repository
 git clone https://github.com/hemahariharan1126/tunecli.git
 cd tunecli
 
-# 2. Install dependencies
+# 2. Install dependencies (compiles Rust engines automatically)
 pip install -r requirements.txt
 
 # 3. Launch TuneCLI
 python main.py
 ```
-
-#### Android (Termux)
-Run the 1-click installer directly inside Termux:
-```bash
-# 1. Clone and enter repo
-git clone https://github.com/hemahariharan1126/tunecli.git
-cd tunecli
-
-# 2. Run automated Termux provisioner
-chmod +x scripts/install-termux.sh
-./scripts/install-termux.sh
-
-# 3. Launch from anywhere!
-tunecli
-```
-> **Note:** TuneCLI on Termux uses an optimized, pure-Python MPV IPC engine with OpenSL ES acceleration, zero C-compilation dependencies, and automatic Android wake-lock support.
-
 
 <details>
 <summary><b>🔑 Optional: API Secrets (For AI/Spotify Recommendations)</b></summary>
