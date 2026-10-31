@@ -4,14 +4,13 @@
 ### *The Ultimate AI-Driven Terminal Audio Engine*
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Rust](https://img.shields.io/badge/Rust-Compiled-orange.svg?style=for-the-badge&logo=rust)](https://www.rust-lang.org/)
 [![Multi-LLM](https://img.shields.io/badge/AI-Multi--LLM-black.svg?style=for-the-badge&logo=probot)](https://github.com/)
 [![MPV](https://img.shields.io/badge/Engine-MPV-purple.svg?style=for-the-badge&logo=mpv)](https://mpv.io/)
 [![Textual](https://img.shields.io/badge/TUI-Textual-cyan.svg?style=for-the-badge)](https://textual.textualize.io/)
 
 **TuneCLI** is an ultra-fast, intelligent, and highly experimental terminal music environment built for developers, audiophiles, and terminal purists.
 
-By fusing **YouTube Music's vast library**, **Spotify's machine-learning audio features**, **Multi-LLM Intelligence**, and **Rust-compiled Acoustic Fingerprinting**, TuneCLI delivers a seamless, mood-aware, and futuristic listening experience completely from the command line — now wrapped in a stunning **multi-theme Textual TUI**.
+By fusing **YouTube Music's vast library**, **Spotify's machine-learning audio features**, **Multi-LLM Intelligence**, and **Acoustic Fingerprinting**, TuneCLI delivers a seamless, mood-aware, and futuristic listening experience completely from the command line — wrapped in a stunning **multi-theme Textual TUI**.
 
 [Explore Themes](#-theme-system) • [Installation](#-quick-start--installation) • [Commands](#%EF%B8%8F-command-interface)
 
@@ -40,12 +39,12 @@ Integrates a <b>flexible Multi-LLM architecture</b> to analyze free-form user st
 
 <details open>
 <summary><b>🎙️ Ambient Audio Fingerprinting</b></summary>
-Built-in Rust-powered acoustic recognition engine (<code>M!find</code>). Listen to your surroundings through your microphone, instantly identify the playing track via Shazam's hashing algorithms, and natively queue it or its nearest AI neighbors.
+Built-in acoustic recognition engine (<code>M!find</code>). Listen to your surroundings through your microphone or capture internal PC audio (<code>M!find sys</code>), instantly identify the playing track via Shazam, and natively queue it or its nearest AI neighbors.
 </details>
 
 <details>
 <summary><b>🖥️ Reactive Multi-Theme TUI</b></summary>
-A fully reactive, multi-zone Textual TUI with a live status bar HUD, animated visualizer, dynamic queue panel, block-character logo banner, Now Playing display, and interactive modal dialogs — switchable across 8 built-in colour themes at runtime with <code>M!theme</code>.
+A fully reactive, multi-zone Textual TUI with a live status bar HUD, dynamic queue panel, block-character logo banner, Now Playing display, and interactive modal dialogs — switchable across built-in colour themes at runtime with <code>M!theme</code>.
 </details>
 
 ---
@@ -53,35 +52,66 @@ A fully reactive, multi-zone Textual TUI with a live status bar HUD, animated vi
 ## 🚀 Quick Start & Installation
 
 ### Prerequisites
-- **Python 3.10+**
-- **Rust Toolchain (`Cargo`)**: Required for compiling the audio processing core.
-- **MPV Core**: Required for hardware-accelerated playback (`libmpv`).
+- **Python 3.10 or higher**
+- **Audio Engine (`libmpv`)**:
+  - **Windows**: Bundled out-of-the-box in `lib/` (zero manual installation needed!).
+  - **macOS**: `brew install mpv`
+  - **Linux (Ubuntu/Debian)**: `sudo apt install libmpv-dev mpv`
 
-### Setup
+---
+
+### ⚡ Option A: Single-Click Launch (Recommended)
+
+#### 🪟 Windows
+Simply double-click **`StartTuneCLI.bat`** in the repository root.
+> Automatically verifies Python, builds the virtual environment (`venv`), installs all dependencies, and boots the application.
+
+#### 🐧 Linux / 🍎 macOS
+Make `start.sh` executable and run it:
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+---
+
+### 🛠️ Option B: Manual Setup
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/hemahariharan1126/tunecli.git
 cd tunecli
 
-# 2. Install dependencies (compiles Rust engines automatically)
+# 2. Create and activate a virtual environment
+python3 -m venv venv
+# On Windows: call venv\Scripts\activate
+# On Linux/macOS: source venv/bin/activate
+
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# 3. Launch TuneCLI
+# 4. Launch TuneCLI
 python main.py
 ```
 
 <details>
-<summary><b>🔑 Optional: API Secrets (For AI/Spotify Recommendations)</b></summary>
+<summary><b>🔑 Optional: API Secrets (For AI & Spotify Recommendations)</b></summary>
 
-Create a `.env` file in the root directory:
+TuneCLI runs out-of-the-box with YouTube audio streams. To enable Spotify acoustic vector analysis or AI scenario soundtracking, copy `.env.example` to `.env`:
+
 ```env
-SPOTIFY_CLIENT_ID='your_id'
-SPOTIFY_CLIENT_SECRET='your_secret'
+# Spotify API Credentials (Optional: for ML acoustic features)
+SPOTIFY_CLIENT_ID='your_spotify_client_id'
+SPOTIFY_CLIENT_SECRET='your_spotify_client_secret'
 
-# Configure your preferred LLM provider for AI features
-LLM_PROVIDER='your_provider'
-LLM_API_KEY='your_key'
+# Google Gemini API Key (Optional: for M!scenario, M!eq, and M!ask)
+GEMINI_API_KEY='your_gemini_api_key'
+
+# Ollama / Cloud LLM Endpoint (Optional alternate AI provider)
+USE_OLLAMA_FOR_SCENARIO=false
+OLLAMA_API_KEY='your_ollama_api_key'
+OLLAMA_MODEL='gemma4:31b-cloud'
+OLLAMA_BASE_URL='https://ollama.com/v1/chat/completions'
 ```
 </details>
 
@@ -93,32 +123,39 @@ Navigate TuneCLI using an intuitive, context-aware command parser prefixed with 
 
 | Command | Feature |
 | :--- | :--- |
-| `M!find` | **Ambient Recognition.** Records mic audio, identifies the playing song, and plays it. |
-| `M!scenario <story>`| **Story-Based Soundtrack.** Describe your situation to the AI. |
-| `M!ask <question>`| **Chat with the Music AI.** Ask about your queue, music history, or get trivia! |
-| `M!play <query>` | Gapless playback using the Unstoppable 4-Stage Search engine. |
+| `M!play <query\|url>` | Play by song name, YouTube URL, or Spotify track / playlist link. |
+| `M!play-playlist <name>` | Search YouTube Music and Spotify catalogs for a playlist by name. |
+| `M!find [seconds\|sys]` | **Ambient Recognition.** Listens to mic or internal PC audio (`sys`) to identify the track. |
+| `M!hist` | **Playback History.** View and instantly replay your last 50 songs and playlists. |
+| `M!scenario <story>`| **Story-Based Soundtrack.** Describe your situation to the AI for an auto-generated set. |
+| `M!ask <prompt>`| **Natural Language Search.** Identify and play songs from vague lyrics or plot lines. |
 | `M!recommend` | Computes acoustic vectors of the current track to queue nearest neighbors. |
+| `M!radio <on\|off>` | Infinite algorithmic generation of related tracks matching the current song. |
 | `M!mood <mood>` | Mutate the queue using semantic mood filters (`sad`, `chill`, `party`, `focus`). |
-| `M!radio <song>` | Infinite algorithmic generation of related tracks. |
-| `M!theme <name>` | **Hot-swap UI theme.** 8 built-in themes! |
-| `M!eq <preset>` | Apply a 10-band equalizer (e.g., `bass_boost`, `vocal`). |
+| `M!theme <name>` | **Hot-swap UI theme.** Choose from 8 cinematic and aesthetic palettes. |
+| `M!eq [on\|off\|reset\|info]`| AI-optimized 10-band equalizer customized per song. |
+| `M!shuffle [on\|off]` | Toggle or set randomized queue playback (or press `s`). |
+| `M!seek <time\|pos>` | Jump position (e.g. `1:30`, `+30`, `-15`, `50%`, or Left/Right arrows). |
+| `M!speed <rate\|normal>` | Adjust playback speed (0.25x to 4.0x). |
+| `M!sleep <min\|off>` | Schedule auto-stop timer (e.g. `30`, `1h`, or `off`). |
+| `M!crossfade <sec\|off>`| Smooth track transition fade duration (1-10s). |
+| `M!loop [off\|one\|all]` | Repeat off, repeat one track, or loop entire queue. |
+| `M!source [yt\|ytmusic]` | Switch search backend between yt-dlp and YouTube Music API. |
+| `M!lang [code\|reset]` | View or override language lock (`ta`, `hi`, `te`, `ml`, `kn`, `en`). |
 
 <details>
-<summary><b>View standard playback controls</b></summary>
+<summary><b>View standard playback controls & hardware keybindings</b></summary>
 
-- `M!pause` / `M!resume`: Control playback lifecycle (or press Space, or Bluetooth button).
+- `M!pause` / `M!resume`: Pause or resume audio (or press Space, or Bluetooth button).
 - `M!skip` / `M!next`: Jump to next track (or press `n`, or Bluetooth next).
 - `M!prev`: Return to historical track (or press `p`, or Bluetooth prev).
-- `M!shuffle [on|off]`: Toggle or set random queue playback (or press `s`).
-- `M!seek <time|pos>`: Jump position (e.g. `1:30`, `+30`, `-15`, `50%`, or `Shift+Right`/`Shift+Left`).
-- `M!speed <rate>`: Control playback speed (0.25x to 4.0x, or `normal`).
-- `M!sleep <minutes|off>`: Schedule auto-stop timer (e.g. `30`, `1h`, or `off`).
-- `M!crossfade <sec|off>`: Smooth track transitions with fade-in (1-10s).
-- `M!queue`: View the up-next state tree.
+- `M!queue`: View upcoming track sequence in the interactive panel.
 - `M!remove <index>`: Delete a specific song from the upcoming queue.
 - `M!reorder <from> <to>`: Move a song within the queue.
-- `M!volume <0-100>`: Manipulate the MPV audio bus (or keyboard volume keys).
-- `M!help`: Advanced command syntax reference.
+- `M!volume <0-100>`: Manipulate audio gain (or `+` / `-` keys).
+- `M!help`: Interactive command reference table.
+- `M!update`: Pull latest changes directly from Git.
+- `M!exit` / `M!quit` / `M!end`: Clean shutdown and cache purge.
 - **Hardware & Bluetooth Controls**: Global support for Bluetooth headsets (Play/Pause, Next, Prev) and keyboard media keys via OS-level event bridging.
 </details>
 
@@ -126,7 +163,7 @@ Navigate TuneCLI using an intuitive, context-aware command parser prefixed with 
 
 ## 🎨 Theme System
 
-TuneCLI ships with **8 built-in colour themes**, switchable instantly at runtime with `M!theme <name>`. Your choice persists across restarts via `.env`.
+TuneCLI ships with built-in colour themes, switchable instantly at runtime with `M!theme <name>`. Your choice persists across restarts via `.env`.
 
 <details>
 <summary><b>Click to preview all available themes!</b></summary>
@@ -134,6 +171,11 @@ TuneCLI ships with **8 built-in colour themes**, switchable instantly at runtime
 | Theme | Accent | Background | Vibe | Command |
 | :--- | :---: | :---: | :--- | :--- |
 | `cyberpunk` ⚡ | `#00d4ff` | `#080810` | Synthwave default | `M!theme cyberpunk` |
+| `jarvis` 🤖 | `#00e5ff` | `#040a14` | Stark Tech HUD | `M!theme jarvis` |
+| `matrix` 💻 | `#00ff41` | `#020a02` | Digital rain green | `M!theme matrix` |
+| `batman` 🦇 | `#e5a93b` | `#08080a` | Gotham dark & gold | `M!theme batman` |
+| `spiderverse` 🕷️ | `#ff0055` | `#0a0208` | Neon glitch comic | `M!theme spiderverse` |
+| `bladerunner` 🛸 | `#ff6b1a` | `#0a0503` | 2049 amber haze | `M!theme bladerunner` |
 | `dracula` 🧛 | `#ff79c6` | `#282a36` | Classic dev dark | `M!theme dracula` |
 | `black` 🖤 | `#ffffff` | `#000000` | Minimal monochrome | `M!theme black` |
 | `red_velvet` 🍷 | `#e8234a` | `#1a0008` | Warm dark luxe | `M!theme red_velvet` |
@@ -163,17 +205,18 @@ flowchart TD
 
     subgraph Commands ["⚙️ Command Handlers"]
         direction LR
-        Play["M!play"]
+        Play["M!play / M!play-playlist"]
         AI["M!scenario / M!ask"]
         Audio["M!find / M!eq"]
-        Queue["M!reorder / M!remove"]
+        Playback["M!shuffle / M!seek / M!speed / M!sleep / M!crossfade"]
+        Queue["M!reorder / M!remove / M!hist"]
     end
 
     subgraph APIs ["🌐 External APIs"]
         Spotify["Spotify REST"]
         YTMusic["YouTube Music Engine"]
         LLM["Multi-LLM Engine"]
-        Shazam["Rust Shazam Core"]
+        Shazam["Acoustic Core"]
     end
 
     subgraph Engine ["🎵 Core Engine"]
@@ -208,8 +251,10 @@ tunecli/
 ├── recommender/        # ML Vector processing for semantic/acoustic matching
 ├── search_engine/      # 4-Stage Iterative Search engine
 ├── ui/                 # Textual TUI — app, components, styles, and themes
-├── utils/              # Shared helpers
+├── utils/              # Shared helpers (history manager, formatting)
 ├── logo.txt            # Block-character banner
+├── StartTuneCLI.bat    # Windows 1-Click Launcher
+├── start.sh            # Linux/macOS 1-Click Launcher
 └── main.py             # Application Entrypoint
 ```
 </details>

@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 
 :: Set the directory to the location of the bat file
 cd /d "%~dp0"
@@ -9,11 +9,21 @@ echo       ⚡ Starting M! TuneCLI ⚡
 echo =========================================
 echo.
 
-:: 1. Check if Python is installed
+:: 1. Check if Python is installed (test python, then py -3)
+set "PY_CMD="
 python --version >nul 2>&1
-if %errorlevel% neq 0 (
+if not errorlevel 1 (
+    set "PY_CMD=python"
+) else (
+    py -3 --version >nul 2>&1
+    if not errorlevel 1 (
+        set "PY_CMD=py -3"
+    )
+)
+
+if "%PY_CMD%"=="" (
     echo [ERROR] Python is not installed or not in your PATH.
-    echo Please install Python 3.10 or higher from python.org
+    echo Please install Python 3.10 or higher from python.org and check "Add Python to PATH"
     pause
     exit /b 1
 )
@@ -32,7 +42,7 @@ if not exist ".env" (
 if exist "venv\" goto skip_venv
 echo [INFO] First time setup detected.
 echo [INFO] Creating isolated Virtual Environment...
-python -m venv venv
+%PY_CMD% -m venv venv
 if errorlevel 1 (
     echo [ERROR] Failed to create virtual environment.
     pause
@@ -41,7 +51,11 @@ if errorlevel 1 (
 :skip_venv
 
 :: Activate the virtual environment
-call venv\Scripts\activate
+if exist "venv\Scripts\activate.bat" (
+    call venv\Scripts\activate.bat
+) else if exist "venv\Scripts\activate" (
+    call venv\Scripts\activate
+)
 
 :: 4. Check if core requirements are installed
 if exist "venv\.installed" goto skip_install
@@ -51,7 +65,7 @@ if not errorlevel 1 (
     goto skip_install
 )
 echo [INFO] Installing required dependencies... This may take a minute.
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 if errorlevel 1 (
     echo [ERROR] Failed to install dependencies.
     pause

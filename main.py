@@ -6,7 +6,7 @@ Featuring a beautiful reactive TUI.
 import os
 import sys
 
-# --- MPV & yt-dlp Loading Logic (Windows Portable Setup) ---
+# --- MPV & yt-dlp Loading Logic (Cross-Platform Setup) ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LIB_PATH = os.path.join(BASE_DIR, 'lib')
 
@@ -22,13 +22,48 @@ if sys.platform == 'win32':
             except Exception:
                 pass # Already added or OS restriction
     
-    # Add Python Scripts folder to PATH so MPV can find yt-dlp.exe
-    scripts_path = os.path.join(os.path.dirname(sys.executable), 'Scripts')
-    win_store_scripts = os.path.expandvars(r"%LOCALAPPDATA%\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\Scripts")
+    # Add Python Scripts folder and user site-scripts to PATH so MPV can find yt-dlp.exe
+    search_script_dirs = [
+        os.path.join(os.path.dirname(sys.executable), 'Scripts'),
+        os.path.join(sys.prefix, 'Scripts'),
+    ]
+    try:
+        import site
+        if hasattr(site, 'getuserbase'):
+            search_script_dirs.append(os.path.join(site.getuserbase(), 'Scripts'))
+    except Exception:
+        pass
+
+    # Dynamically discover any Windows Store Python script locations
+    local_app_data = os.environ.get('LOCALAPPDATA', '')
+    if local_app_data:
+        packages_dir = os.path.join(local_app_data, 'Packages')
+        if os.path.isdir(packages_dir):
+            try:
+                for pkg in os.listdir(packages_dir):
+                    if pkg.startswith('PythonSoftwareFoundation.Python.'):
+                        py_sub = os.path.join(packages_dir, pkg, 'LocalCache', 'local-packages')
+                        if os.path.isdir(py_sub):
+                            for sub in os.listdir(py_sub):
+                                scripts_candidate = os.path.join(py_sub, sub, 'Scripts')
+                                if os.path.isdir(scripts_candidate):
+                                    search_script_dirs.append(scripts_candidate)
+            except Exception:
+                pass
     
-    for p in [scripts_path, win_store_scripts]:
+    for p in search_script_dirs:
         if os.path.isdir(p) and p not in os.environ['PATH']:
             os.environ['PATH'] = p + os.pathsep + os.environ['PATH']
+
+elif sys.platform == 'darwin':
+    # macOS Homebrew libmpv paths
+    for p in ['/opt/homebrew/lib', '/usr/local/lib']:
+        if os.path.isdir(p):
+            current_dyld = os.environ.get('DYLD_LIBRARY_PATH', '')
+            if p not in current_dyld:
+                os.environ['DYLD_LIBRARY_PATH'] = f"{p}:{current_dyld}" if current_dyld else p
+            if p not in os.environ['PATH']:
+                os.environ['PATH'] = f"{p}:{os.environ['PATH']}"
 # ------------------------------------------------------
 
 import logging
