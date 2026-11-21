@@ -108,7 +108,7 @@ class NowPlayingPanel(Static):
             # ── Progress bar ────────────────────────────────
             if player:
                 duration = player.get_duration() or getattr(song, "duration", 0) or 1
-                position = player.get_position()
+                position = controller.get_position() if hasattr(controller, "get_position") else player.get_position()
 
                 mc, sc = divmod(int(position), 60)
                 mt, st = divmod(int(duration), 60)

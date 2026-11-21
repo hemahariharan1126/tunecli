@@ -51,6 +51,12 @@ class TestPlaybackStateTransitions(unittest.TestCase):
         self.controller._play_next()
         self.assertEqual(self.controller.state, PlaybackState.IDLE)
 
+    def test_last_known_position_tracking(self):
+        self.mock_player.get_position.return_value = 54.0
+        pos = self.controller.get_position()
+        self.assertEqual(pos, 54.0)
+        self.assertEqual(self.controller._last_known_pos, 54.0)
+
 
 if __name__ == '__main__':
     unittest.main()

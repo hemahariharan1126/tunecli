@@ -10,6 +10,7 @@ Architecture:
 """
 
 import logging
+import threading
 from typing import Optional, Callable
 from core.song import Song
 
@@ -318,11 +319,14 @@ class MPVPlayer:
 
 # Singleton instance — lazy, created on first call to get_player()
 _player_instance: Optional[MPVPlayer] = None
+_player_lock = threading.Lock()
 
 
 def get_player() -> MPVPlayer:
-    """Return the singleton MPVPlayer, creating it on first call."""
+    """Return the singleton MPVPlayer, creating it on first call in a thread-safe manner."""
     global _player_instance
     if _player_instance is None:
-        _player_instance = MPVPlayer()
+        with _player_lock:
+            if _player_instance is None:
+                _player_instance = MPVPlayer()
     return _player_instance

@@ -133,11 +133,19 @@ class QueueManager:
         with self._lock:
             self.shuffle_mode = enabled
 
+    def is_shuffle(self) -> bool:
+        with self._lock:
+            return self.shuffle_mode
+
     def set_repeat(self, mode: str):
         """Set repeat mode: 'none', 'one', 'all' (thread-safe)."""
         if mode in ["none", "one", "all"]:
             with self._lock:
                 self.repeat_mode = mode
+
+    def get_repeat(self) -> str:
+        with self._lock:
+            return self.repeat_mode
 
     def clear(self):
         """Empty the queue (thread-safe)."""
@@ -150,17 +158,25 @@ class QueueManager:
         with self._lock:
             return list(self.queue)
 
+    def get_history(self) -> List[Song]:
+        """Return a snapshot of the playback history (thread-safe)."""
+        with self._lock:
+            return list(self.history)
+
     def now_playing(self) -> Optional[Song]:
-        return self.current_song
+        with self._lock:
+            return self.current_song
 
     # Alias property for backward compatibility with code that sets now_playing_song directly
     @property
     def now_playing_song(self) -> Optional[Song]:
-        return self.current_song
+        with self._lock:
+            return self.current_song
 
     @now_playing_song.setter
     def now_playing_song(self, value: Optional[Song]):
-        self.current_song = value
+        with self._lock:
+            self.current_song = value
 
     def queue_length(self) -> int:
         with self._lock:

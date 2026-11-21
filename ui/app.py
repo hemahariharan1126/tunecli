@@ -260,9 +260,10 @@ class TuneCLIApp(App):
 
     def action_toggle_shuffle(self) -> None:
         qm = self.controller.queue_manager
-        qm.shuffle_mode = not qm.shuffle_mode
+        new_state = not qm.is_shuffle()
+        qm.set_shuffle(new_state)
         log = self.query_one("#output_log", RichLog)
-        if qm.shuffle_mode:
+        if new_state:
             log.write("[bold bright_cyan]🔀 SHUFFLE:ON[/bold bright_cyan] [dim]Queue will play in random order.[/dim]")
         else:
             log.write("[dim]🔀 SHUFFLE:OFF[/dim] [dim]Queue will play in order.[/dim]")

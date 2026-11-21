@@ -50,6 +50,7 @@ class PlaybackController:
         self._lang_overridden = False
         self._time_func = time.time
         self._last_play_time = 0.0
+        self._last_known_pos = 0.0
         self.state = PlaybackState.IDLE
 
         # ── Thread-safe state guards ───────────────────────
@@ -118,10 +119,11 @@ class PlaybackController:
             # This is correct even after pause, seek, or buffering pauses.
             song = self._current_song
             if song and song.duration and song.duration > 30:
-                # Ask MPV for how much was actually played
+                # Ask MPV for how much was actually played, or fall back to last known position
                 actual_pos = self.mpv_player.get_position() if self.mpv_player else 0.0
-                # If MPV already reported 0.0, the stream ended — treat as natural
-                # unless the song is very long and position is well below 85%
+                if actual_pos <= 0.0 and self._last_known_pos > 0.0:
+                    actual_pos = self._last_known_pos
+
                 if actual_pos > 0.0:
                     completion_ratio = actual_pos / song.duration
                     if completion_ratio < _NATURAL_FINISH_THRESHOLD:
@@ -153,6 +155,7 @@ class PlaybackController:
             # ── Natural finish — move to next ──────────────
             logging.info("Song ended naturally. Moving to next...")
             self._resume_retry_count = 0
+            self._last_known_pos = 0.0
 
             # Purge the cached file of the song that just finished
             if song and song.video_id:
@@ -468,6 +471,7 @@ class PlaybackController:
             if next_song:
                 self.state = PlaybackState.LOADING
                 self._last_play_time = self._time_func()
+                self._last_known_pos = 0.0
                 self._current_song = next_song
                 self._resume_retry_count = 0
 
@@ -633,6 +637,15 @@ class PlaybackController:
             self.mpv_player.set_volume(volume)
             return f"  [dim]GAIN.SET:[/dim] [bold cyan]{volume}%[/bold cyan]"
 
+    def get_position(self) -> float:
+        """Returns current playback position and updates _last_known_pos."""
+        if self.mpv_player and self.mpv_player.is_available():
+            pos = self.mpv_player.get_position()
+            if pos > 0.0:
+                self._last_known_pos = pos
+            return pos
+        return 0.0
+
     def get_queue(self):
         return self.queue_manager.get_queue()
 
@@ -651,11 +664,19 @@ class PlaybackController:
 # This MUST be done lazily so that main.py has time to set up PATH and
 # os.add_dll_directory() before python-mpv tries to load libmpv-2.dll.
 _controller_instance: "PlaybackController | None" = None
+_controller_lock = threading.Lock()
+
+
+def get_existing_controller() -> "PlaybackController | None":
+    """Return the singleton PlaybackController if it has already been created, without creating a new one."""
+    return _controller_instance
 
 
 def get_controller() -> "PlaybackController":
-    """Return the singleton PlaybackController, creating it on first call."""
+    """Return the singleton PlaybackController, creating it on first call in a thread-safe manner."""
     global _controller_instance
     if _controller_instance is None:
-        _controller_instance = PlaybackController()
+        with _controller_lock:
+            if _controller_instance is None:
+                _controller_instance = PlaybackController()
     return _controller_instance

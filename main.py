@@ -86,12 +86,16 @@ def main():
     except Exception as e:
         print(f"FATAL.ERROR: {e}")
     finally:
-        # Cleanup player and audio cache on exit
-        controller = get_controller()
-        if controller:
-            controller.shutdown()  # Purge pre-downloaded audio cache
-            if controller.mpv_player:
-                controller.mpv_player.terminate()
+        # Cleanup player and audio cache on exit without accidentally creating a new controller
+        try:
+            from player.playback_controller import get_existing_controller
+            controller = get_existing_controller()
+            if controller:
+                controller.shutdown()  # Purge pre-downloaded audio cache
+                if controller.mpv_player:
+                    controller.mpv_player.terminate()
+        except Exception as cleanup_err:
+            logging.debug(f"Cleanup error suppressed: {cleanup_err}")
 
 if __name__ == "__main__":
     main()
