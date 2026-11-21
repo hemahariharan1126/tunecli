@@ -46,6 +46,7 @@ HISTORY_CACHE: str = os.path.join(CACHE_DIR, "history.json")
 # Local disk cache for background-downloaded songs (Hybrid Playback Engine)
 AUDIO_CACHE_DIR: str = os.path.join(CACHE_DIR, "audio")
 MAX_PREDOWNLOAD_SONGS: int = 3  # Max number of upcoming songs to pre-download
+MAX_AUDIO_CACHE_FILES: int = 15 # Maximum cached audio files before LRU eviction
 
 # ── Database Paths ────────────────────────────────────────
 DATABASE_DIR: str = os.path.join(BASE_DIR, "database")

@@ -6,6 +6,7 @@ Implements the Hybrid Playback Engine:
 """
 
 from core.song import Song
+from core.playback_state import PlaybackState
 from player.mpv_player import get_player
 from player.queue_manager import QueueManager
 from player.pre_downloader import get_pre_downloader
@@ -49,10 +50,12 @@ class PlaybackController:
         self._lang_overridden = False
         self._time_func = time.time
         self._last_play_time = 0.0
+        self.state = PlaybackState.IDLE
 
         # ── Thread-safe state guards ───────────────────────
         self._refill_lock = threading.Lock()   # guards _is_refilling
         self._resume_lock = threading.Lock()   # guards _is_resuming
+        self._transition_lock = threading.RLock() # atomic playback transitions
         self._is_refilling = False
         self._is_resuming = False              # prevents duplicate auto-resume threads
 
@@ -454,50 +457,61 @@ class PlaybackController:
         """
         Play the next song from the queue using the Hybrid Playback Engine.
         Priority: Pre-downloaded local file > Live stream.
+        Thread-safe: protected by _transition_lock to prevent simultaneous transitions.
         """
-        if not self.mpv_player:
-            return "[red]ERR: MPV_NOT_INIT[/red]"
+        with self._transition_lock:
+            if not self.mpv_player or not self.mpv_player.is_available():
+                self.state = PlaybackState.ERROR
+                return "[red]ERR: MPV_NOT_INIT[/red]"
 
-        next_song = self.queue_manager.next_song()
-        if next_song:
-            self._last_play_time = self._time_func()
-            self._current_song = next_song
-            self._resume_retry_count = 0
+            next_song = self.queue_manager.next_song()
+            if next_song:
+                self.state = PlaybackState.LOADING
+                self._last_play_time = self._time_func()
+                self._current_song = next_song
+                self._resume_retry_count = 0
 
-            # ── Hybrid Engine: prefer local file ─────────
-            local_path = self._pre_downloader.get_local_path(next_song.video_id)
-            if local_path:
-                logging.info(f"[Hybrid] Playing from disk: {next_song.title}")
-                self.mpv_player.play_local(next_song, local_path)
+                # ── Hybrid Engine: prefer local file ─────────
+                local_path = self._pre_downloader.get_local_path(next_song.video_id)
+                success = False
+                if local_path:
+                    logging.info(f"[Hybrid] Playing from disk: {next_song.title}")
+                    success = self.mpv_player.play_local(next_song, local_path)
+                else:
+                    logging.info(f"[Hybrid] Streaming: {next_song.title}")
+                    success = self.mpv_player.play(next_song)
+
+                if success:
+                    self.state = PlaybackState.PLAYING
+                else:
+                    self.state = PlaybackState.ERROR
+
+                # Apply crossfade (fade-in) if enabled
+                if getattr(self, "crossfade_seconds", 0) > 0 and hasattr(self.mpv_player, "apply_fade_in"):
+                    self.mpv_player.apply_fade_in(self.crossfade_seconds)
+
+                # Schedule the next batch of songs for pre-downloading
+                self._schedule_predownload()
+
+                # Trigger EQ optimization in a background thread (non-blocking)
+                if self.eq_enabled:
+                    threading.Thread(
+                        target=self.eq_engine.apply_for_song_with_lang,
+                        args=(next_song, self.mpv_player, self.seed_language or "en"),
+                        daemon=True,
+                        name=f"eq-{next_song.title[:20]}",
+                    ).start()
+
+                # If radio mode is on, keep the queue topped up
+                if self.radio_mode:
+                    self._check_radio_refill()
             else:
-                logging.info(f"[Hybrid] Streaming: {next_song.title}")
-                self.mpv_player.play(next_song)
+                self.queue_manager.now_playing_song = None
+                self.state = PlaybackState.IDLE
 
-            # Apply crossfade (fade-in) if enabled
-            if getattr(self, "crossfade_seconds", 0) > 0 and hasattr(self.mpv_player, "apply_fade_in"):
-                self.mpv_player.apply_fade_in(self.crossfade_seconds)
-
-            # Schedule the next batch of songs for pre-downloading
-            self._schedule_predownload()
-
-            # Trigger EQ optimization in a background thread (non-blocking)
-            if self.eq_enabled:
-                threading.Thread(
-                    target=self.eq_engine.apply_for_song_with_lang,
-                    args=(next_song, self.mpv_player, self.seed_language or "en"),
-                    daemon=True,
-                    name=f"eq-{next_song.title[:20]}",
-                ).start()
-
-            # If radio mode is on, keep the queue topped up
-            if self.radio_mode:
-                self._check_radio_refill()
-        else:
-            self.queue_manager.now_playing_song = None
-
-            # If radio mode is on but queue is empty, try a refill from history
-            if self.radio_mode:
-                self._check_radio_refill()
+                # If radio mode is on but queue is empty, try a refill from history
+                if self.radio_mode:
+                    self._check_radio_refill()
 
     def _check_radio_refill(self):
         """Trigger a refill if the queue is running low (thread-safe guard)."""
@@ -561,15 +575,21 @@ class PlaybackController:
             self._is_refilling = False
 
     def pause(self):
-        if self.mpv_player:
-            self.mpv_player.pause()
-            return "[bold yellow]  [HLD] PLAYBACK.STOPPED[/bold yellow]"
+        with self._transition_lock:
+            if self.mpv_player and self.mpv_player.is_available():
+                self.mpv_player.pause()
+                self.state = PlaybackState.PAUSED
+                return "[bold yellow]  [HLD] PLAYBACK.STOPPED[/bold yellow]"
+            return "[dim]  MPV player unavailable.[/dim]"
 
     def resume(self):
         """Resume playback."""
-        if self.mpv_player:
-            self.mpv_player.resume()
-            return "[bold green]  [RUN] PLAYBACK.RESUMED[/bold green]"
+        with self._transition_lock:
+            if self.mpv_player and self.mpv_player.is_available():
+                self.mpv_player.resume()
+                self.state = PlaybackState.PLAYING
+                return "[bold green]  [RUN] PLAYBACK.RESUMED[/bold green]"
+            return "[dim]  MPV player unavailable.[/dim]"
 
     def seek(self, offset: float) -> None:
         """Seek relatively by offset in seconds (+/-)."""
@@ -577,30 +597,36 @@ class PlaybackController:
             self.mpv_player.seek_relative(offset)
 
     def stop(self):
-        if self.mpv_player:
-            self.mpv_player.stop()
+        with self._transition_lock:
+            if self.mpv_player:
+                self.mpv_player.stop()
             self.queue_manager.clear()
             self.radio_mode = False
+            self.state = PlaybackState.STOPPED
             return "[bold red]  [OFF] SYSTEM.HALT: QUEUE_CLEARED[/bold red]"
 
     def skip(self):
         """Skip current track and play next."""
-        if self.mpv_player:
-            self.mpv_player.stop()
-        self._play_next()
-        return "[dim]  SKIPPING.TRACK...[/dim]"
+        with self._transition_lock:
+            if self.mpv_player:
+                self.mpv_player.stop()
+            self._play_next()
+            return "[dim]  SKIPPING.TRACK...[/dim]"
 
     def prev(self):
         """Go back to previous track if history exists."""
-        prev_song = self.queue_manager.prev_song()
-        if prev_song and self.mpv_player:
-            self._last_play_time = self._time_func()
-            self._current_song = prev_song
-            self._resume_retry_count = 0
-            self.mpv_player.play(prev_song)
-            return f"  [bold magenta]«[/bold magenta] [white]RESTORING:[/white] [cyan]{prev_song.title}[/cyan]"
-        else:
-            return "[yellow]  WARN: NO_HISTORY_AVAILABLE[/yellow]"
+        with self._transition_lock:
+            prev_song = self.queue_manager.prev_song()
+            if prev_song and self.mpv_player and self.mpv_player.is_available():
+                self.state = PlaybackState.LOADING
+                self._last_play_time = self._time_func()
+                self._current_song = prev_song
+                self._resume_retry_count = 0
+                success = self.mpv_player.play(prev_song)
+                self.state = PlaybackState.PLAYING if success else PlaybackState.ERROR
+                return f"  [bold magenta]«[/bold magenta] [white]RESTORING:[/white] [cyan]{prev_song.title}[/cyan]"
+            else:
+                return "[yellow]  WARN: NO_HISTORY_AVAILABLE[/yellow]"
 
     def set_volume(self, volume: int):
         if self.mpv_player:

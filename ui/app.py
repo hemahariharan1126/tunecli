@@ -176,11 +176,22 @@ class TuneCLIApp(App):
             "[dim]Type [bold]M!help[/bold] to see all commands.[/dim]"
         )
 
+        # Notify if native MPV player is unavailable
+        if not self.controller.mpv_player or not self.controller.mpv_player.is_available():
+            err = self.controller.mpv_player.get_init_error() if self.controller.mpv_player else "Native MPV library not found"
+            log.write(
+                f"[bold red]⚠ MPV UNAVAILABLE:[/bold red] [dim]{err}[/dim]\n"
+                "  [dim]Install mpv or run StartTuneCLI.bat to enable audio playback.[/dim]"
+            )
+
         def _safe_log_write(msg: str) -> None:
             try:
+                # Textual message dispatch from worker/background thread
                 self.call_from_thread(log.write, msg)
-            except Exception:
-                log.write(msg)
+            except Exception as e:
+                # Never fallback to direct widget manipulation from background threads
+                import logging
+                logging.debug(f"[UI] Suppressed log write during shutdown/thread exit: {e}")
         self.controller._app_log_callback = _safe_log_write
         
         self._check_for_updates()
