@@ -47,6 +47,8 @@ class PlaybackController:
         self.radio_mode = False
         self.seed_language = None
         self._lang_overridden = False
+        self._time_func = time.time
+        self._last_play_time = 0.0
 
         # ── Thread-safe state guards ───────────────────────
         self._refill_lock = threading.Lock()   # guards _is_refilling
