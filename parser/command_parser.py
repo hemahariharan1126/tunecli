@@ -11,7 +11,7 @@ COMMAND_PREFIX = "M!"
 
 KNOWN_COMMANDS = {
     "play", "play-playlist", "pause", "resume", "skip", "stop",
-    "queue", "mood", "recommend", "volume", "help",
+    "queue", "mood", "recommend", "help",
     "next", "prev", "radio", "find", "scenario", "theme", "lang", "eq", "reorder", "ask", "remove", "source", "loop",
     "shuffle", "seek", "speed", "sleep", "crossfade", "background",
     "exit", "quit", "end", "update", "hist"

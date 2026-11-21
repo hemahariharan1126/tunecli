@@ -67,7 +67,7 @@ class NowPlayingPanel(Static):
                 f"  {self.progress_bar}\n"
                 f"  [dim]{self.time_label}[/dim]\n"
             )
-            vol_section = f"\n  {self.volume_bar}\n"
+            vol_section = ""
 
         # ── Visualizer ───────────────────────────────────────
         if self.visualizer:
@@ -121,17 +121,7 @@ class NowPlayingPanel(Static):
                     "[cyan]" + "▓" * filled + "[/cyan]"
                     + "[bright_black]" + "░" * empty + "[/bright_black]"
                 )
-
-                # ── Volume bar ───────────────────────────────
-                vol          = player.get_volume()
-                vol_filled   = int(vol / 10)
-                vol_empty    = 10 - vol_filled
-                self.volume_bar = (
-                    "[dim]🔊[/dim] "
-                    "[cyan]" + "█" * vol_filled + "[/cyan]"
-                    + "[bright_black]" + "░" * vol_empty + "[/bright_black]"
-                    + f" [dim]{vol}%[/dim]"
-                )
+                self.volume_bar = ""
 
             # ── Visualizer ───────────────────────────────────
             self.visualizer = get_visualizer_frame(36, is_playing=self.is_playing)

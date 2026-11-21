@@ -72,22 +72,6 @@ class MediaKeyBridge:
             elif key == Key.media_previous:
                 ctrl.prev()
 
-            elif key == Key.media_volume_up:
-                if ctrl.mpv_player:
-                    vol = ctrl.mpv_player.get_volume()
-                    ctrl.set_volume(min(vol + 5, 100))
-
-            elif key == Key.media_volume_down:
-                if ctrl.mpv_player:
-                    vol = ctrl.mpv_player.get_volume()
-                    ctrl.set_volume(max(vol - 5, 0))
-
-            elif key == Key.media_volume_mute:
-                if ctrl.mpv_player:
-                    vol = ctrl.mpv_player.get_volume()
-                    # Toggle mute: set to 0 if above 0, or restore to 50 if already muted
-                    ctrl.set_volume(0 if vol > 0 else 50)
-
         except Exception as e:
             logging.debug(f"MediaKeyBridge: Key handler error: {e}")
 

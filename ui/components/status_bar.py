@@ -28,15 +28,6 @@ class StatusBar(Static):
         q_len = len(controller.get_queue())
         queue = f"[bold cyan]🎵 QUEUE:[/bold cyan][white]{q_len:>2}[/white]  "
 
-        # Volume
-        vol = 0
-        if controller.mpv_player:
-            vol = controller.mpv_player.get_volume()
-        vol_filled = int(vol / 10)
-        vol_empty  = 10 - vol_filled
-        vol_bar    = "[cyan]" + "█" * vol_filled + "[/cyan]" + "[bright_black]" + "░" * vol_empty + "[/bright_black]"
-        volume_str = f"[bold cyan]🔊[/bold cyan] {vol_bar} [white]{vol:>3}%[/white]  "
-
         # Playback time
         time_str = "[dim]⏱ --:-- / --:--[/dim]"
         if controller.mpv_player:
@@ -104,7 +95,7 @@ class StatusBar(Static):
         brand = "[bold bright_cyan]⚡ M! TuneCLI[/bold bright_cyan]  [dim]│[/dim]  "
 
         self.status_text = (
-            brand + radio + "  " + queue + volume_str + time_str
+            brand + radio + "  " + queue + time_str
             + "  " + lang_badge + eq_badge + loop_badge + shuffle_badge
             + speed_badge + sleep_badge + cf_badge
         )

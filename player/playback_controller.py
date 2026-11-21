@@ -632,11 +632,6 @@ class PlaybackController:
             else:
                 return "[yellow]  WARN: NO_HISTORY_AVAILABLE[/yellow]"
 
-    def set_volume(self, volume: int):
-        if self.mpv_player:
-            self.mpv_player.set_volume(volume)
-            return f"  [dim]GAIN.SET:[/dim] [bold cyan]{volume}%[/bold cyan]"
-
     def get_position(self) -> float:
         """Returns current playback position and updates _last_known_pos."""
         if self.mpv_player and self.mpv_player.is_available():

@@ -34,7 +34,6 @@ _COMMAND_REGISTRY = {
     "queue":         ("commands.queue", "show_queue"),
     "mood":          ("commands.mood", "mood"),
     "recommend":     ("commands.recommend", "recommend"),
-    "volume":        ("commands.volume", "volume"),
     "help":          ("commands.help", "help_command"),
     "find":          ("commands.find", "find"),
     "scenario":      ("commands.scenario", "scenario"),
@@ -118,8 +117,6 @@ class TuneCLIApp(App):
         ("left",   "seek_backward",    "Seek -5s"),
         ("n",      "next_track",       "Next"),
         ("p",      "prev_track",       "Prev"),
-        ("plus",   "volume_up",        "Vol+"),
-        ("minus",  "volume_down",      "Vol-"),
         ("s",      "toggle_shuffle",   "Shuffle"),
         ("shift+right", "seek_fwd_30", "Seek +30s"),
         ("shift+left",  "seek_bwd_30", "Seek -30s"),
@@ -244,18 +241,6 @@ class TuneCLIApp(App):
 
     def action_seek_backward(self) -> None:
         self.controller.seek(-5)
-        self._update_ui()
-
-    def action_volume_up(self) -> None:
-        if self.controller.mpv_player:
-            vol = self.controller.mpv_player.get_volume()
-            self.controller.set_volume(min(vol + 5, 100))
-        self._update_ui()
-
-    def action_volume_down(self) -> None:
-        if self.controller.mpv_player:
-            vol = self.controller.mpv_player.get_volume()
-            self.controller.set_volume(max(vol - 5, 0))
         self._update_ui()
 
     def action_toggle_shuffle(self) -> None:
