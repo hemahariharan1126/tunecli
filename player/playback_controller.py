@@ -46,10 +46,13 @@ class PlaybackController:
         self.current_mood = ""
         self.radio_mode = False
         self.seed_language = None
-        self._is_refilling = False
-        self._last_play_time = 0.0
         self._lang_overridden = False
-        self._time_func = time.time
+
+        # ── Thread-safe state guards ───────────────────────
+        self._refill_lock = threading.Lock()   # guards _is_refilling
+        self._resume_lock = threading.Lock()   # guards _is_resuming
+        self._is_refilling = False
+        self._is_resuming = False              # prevents duplicate auto-resume threads
 
         # ── Auto-Resume State ──────────────────────────────
         # Tracks the last known good playback position of the current song.
@@ -69,6 +72,9 @@ class PlaybackController:
         self.eq_engine = EQEngine()
         self.eq_enabled = True
 
+        # Recommender engine cache (avoid re-initialising heavy ML/API objects)
+        self._recommender_engine = None
+
         # ── Crossfade & Playback Settings ──────────────────
         self.crossfade_seconds = 0
 
@@ -84,6 +90,8 @@ class PlaybackController:
         Called when MPV signals End of File.
         Core of the Hybrid Playback Engine:
           1. Detects premature EOF (network drop) vs natural finish.
+             Uses MPV's actual time-pos property (not wall-clock) for accuracy —
+             immune to pause, seek, and buffering delays.
           2. If dropped: triggers Auto-Resume Recovery.
           3. If finished naturally: moves to next song using pre-downloaded file if available.
         """
@@ -93,47 +101,49 @@ class PlaybackController:
                 return
 
             reason = getattr(data, 'reason', None)
-            eof_val = getattr(data, 'EOF', 0)
-            
-            if reason != eof_val:
-                # Non-natural end (e.g., stop() was called manually), do nothing
-                logging.debug(f"Song ended with reason code: {reason} (ignoring)")
-                return
+            eof_val = getattr(data, 'EOF', None)
 
-            # ── Natural EOF path ───────────────────────────
-            elapsed = self._time_func() - self._last_play_time
-
-            # Runaway guard: song ended in under 3 seconds — something is very wrong
-            if elapsed < 3.0:
-                logging.warning(f"Song ended too quickly ({elapsed:.1f}s). Aborting auto-play.")
+            # Only handle natural EOF (not user-triggered stop/skip)
+            if eof_val is None or reason != eof_val:
+                logging.debug(f"Song ended with reason code: {reason} (ignoring non-EOF)")
                 return
 
             # ── Premature EOF guard (Auto-Resume Recovery) ─
-            # Check if we're confident a network drop occurred
+            # Use MPV's reported duration instead of wall-clock elapsed time.
+            # This is correct even after pause, seek, or buffering pauses.
             song = self._current_song
             if song and song.duration and song.duration > 30:
-                completion_ratio = elapsed / song.duration
-                if completion_ratio < _NATURAL_FINISH_THRESHOLD:
-                    # Network drop detected! The song didn't play enough to be "finished"
-                    if self._resume_retry_count < self._MAX_RESUME_RETRIES:
-                        self._resume_retry_count += 1
-                        logging.warning(
-                            f"[AutoResume] Drop detected at {elapsed:.0f}s "
-                            f"({completion_ratio:.0%} of {song.duration:.0f}s). "
-                            f"Retrying (attempt {self._resume_retry_count}/{self._MAX_RESUME_RETRIES})..."
-                        )
-                        # Resume from the last known position in a background thread
-                        threading.Thread(
-                            target=self._auto_resume,
-                            args=(song, elapsed),
-                            daemon=True,
-                            name="auto-resume",
-                        ).start()
-                        return
-                    else:
-                        # Exhausted retries — accept the drop and move on
-                        logging.warning("[AutoResume] Max retries exceeded. Moving to next song.")
-                        self._resume_retry_count = 0
+                # Ask MPV for how much was actually played
+                actual_pos = self.mpv_player.get_position() if self.mpv_player else 0.0
+                # If MPV already reported 0.0, the stream ended — treat as natural
+                # unless the song is very long and position is well below 85%
+                if actual_pos > 0.0:
+                    completion_ratio = actual_pos / song.duration
+                    if completion_ratio < _NATURAL_FINISH_THRESHOLD:
+                        # Acquire resume lock atomically
+                        with self._resume_lock:
+                            if self._is_resuming:
+                                logging.debug("[AutoResume] Already resuming, skipping duplicate trigger.")
+                                return
+                            if self._resume_retry_count < self._MAX_RESUME_RETRIES:
+                                self._resume_retry_count += 1
+                                self._is_resuming = True
+                                logging.warning(
+                                    f"[AutoResume] Drop detected at {actual_pos:.0f}s "
+                                    f"({completion_ratio:.0%} of {song.duration:.0f}s). "
+                                    f"Retrying (attempt {self._resume_retry_count}/{self._MAX_RESUME_RETRIES})..."
+                                )
+                                threading.Thread(
+                                    target=self._auto_resume,
+                                    args=(song, actual_pos),
+                                    daemon=True,
+                                    name="auto-resume",
+                                ).start()
+                                return
+                            else:
+                                # Exhausted retries — accept the drop and move on
+                                logging.warning("[AutoResume] Max retries exceeded. Moving to next song.")
+                                self._resume_retry_count = 0
 
             # ── Natural finish — move to next ──────────────
             logging.info("Song ended naturally. Moving to next...")
@@ -144,7 +154,7 @@ class PlaybackController:
                 self._pre_downloader.purge_file(song.video_id)
 
             self._play_next()
-            
+
             # If radio mode is on, check if we need more songs
             if self.radio_mode:
                 self._check_radio_refill()
@@ -156,6 +166,7 @@ class PlaybackController:
         """
         Background recovery thread.
         Re-fetches a fresh stream URL and resumes from the last known position.
+        Always clears the _is_resuming flag when done (success or failure).
         """
         try:
             logging.info(f"[AutoResume] Fetching fresh stream for: {song.title}")
@@ -168,7 +179,6 @@ class PlaybackController:
 
             # Replace the stream URL but keep the queue position
             self._current_song = fresh_song
-            self._last_play_time = self._time_func() - last_position  # Preserve elapsed time
 
             self.mpv_player.play(fresh_song)
 
@@ -180,6 +190,9 @@ class PlaybackController:
         except Exception as e:
             logging.error(f"[AutoResume] Recovery failed: {e}. Skipping to next.")
             self._play_next()
+        finally:
+            with self._resume_lock:
+                self._is_resuming = False
 
     def _post_playlist_summary(self, queued: int, total: int) -> None:
         """Post playlist load result to the UI log."""
@@ -485,20 +498,29 @@ class PlaybackController:
                 self._check_radio_refill()
 
     def _check_radio_refill(self):
-        """Trigger a refill if the queue is running low."""
-        if self._is_refilling:
-            return
-            
-        queue_len = len(self.get_queue())
-        if queue_len < 3:
-            threading.Thread(target=self._refill_radio, daemon=True).start()
+        """Trigger a refill if the queue is running low (thread-safe guard)."""
+        with self._refill_lock:
+            if self._is_refilling:
+                return
+            queue_len = len(self.get_queue())
+            if queue_len >= 3:
+                return
+            self._is_refilling = True
+
+        threading.Thread(target=self._refill_radio, daemon=True).start()
+
+    def _get_recommender(self):
+        """Lazy cached instance of RecommenderEngine."""
+        if self._recommender_engine is None:
+            from recommender.recommender_engine import RecommenderEngine
+            self._recommender_engine = RecommenderEngine()
+        return self._recommender_engine
 
     def _refill_radio(self):
         """Fetch recommendations and add to queue."""
         self._is_refilling = True
         try:
-            from recommender.recommender_engine import RecommenderEngine
-            engine = RecommenderEngine()
+            engine = self._get_recommender()
             
             seed_song = self.queue_manager.now_playing()
             if not seed_song and self.queue_manager.history:
@@ -594,10 +616,18 @@ class PlaybackController:
         """Clean up resources on app exit."""
         if hasattr(self, "media_key_bridge") and self.media_key_bridge:
             self.media_key_bridge.stop()
+        self._pre_downloader.shutdown()
         self._pre_downloader.purge_all()
 
-# Global controller instance
-controller = PlaybackController()
+# Global controller instance — lazy-initialized on first call.
+# This MUST be done lazily so that main.py has time to set up PATH and
+# os.add_dll_directory() before python-mpv tries to load libmpv-2.dll.
+_controller_instance: "PlaybackController | None" = None
 
-def get_controller():
-    return controller
+
+def get_controller() -> "PlaybackController":
+    """Return the singleton PlaybackController, creating it on first call."""
+    global _controller_instance
+    if _controller_instance is None:
+        _controller_instance = PlaybackController()
+    return _controller_instance

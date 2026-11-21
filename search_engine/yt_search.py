@@ -28,6 +28,7 @@ YDL_OPTS = {
     'force_generic_extractor': False,
     'default_search': 'ytsearch5',  # Search top 5 results
     'extractor_args': {'youtube': {'player_client': ['ios', 'android']}}, # Bypasses YouTube 403 block
+    'socket_timeout': 10, # Prevent indefinite hangs on dead connections
 }
 
 class YTSearch:

@@ -18,9 +18,10 @@ if sys.platform == 'win32':
             os.environ['PATH'] = abs_lib_path + os.pathsep + os.environ['PATH']
         if hasattr(os, 'add_dll_directory'):
             try:
-                os.add_dll_directory(abs_lib_path)
+                # Store handle at module level — if discarded, the DLL dir is removed from search
+                _dll_dir_handle = os.add_dll_directory(abs_lib_path)
             except Exception:
-                pass # Already added or OS restriction
+                _dll_dir_handle = None  # Already added or OS restriction
     
     # Add Python Scripts folder and user site-scripts to PATH so MPV can find yt-dlp.exe
     search_script_dirs = [

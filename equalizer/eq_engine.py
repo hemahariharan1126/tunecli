@@ -8,6 +8,8 @@ Cache key:      sha256(f"{title}|{artist}")[:16]  (16-char hex prefix)
 
 import json
 import logging
+import os
+import threading
 from hashlib import sha256
 from pathlib import Path
 
@@ -36,6 +38,7 @@ class EQEngine:
     """
 
     def __init__(self):
+        self._lock = threading.Lock()
         self._cache: dict[str, list[int]] = self._load_cache_file()
         self._current_bands: list[int] = list(FLAT_EQ)
 
@@ -138,10 +141,15 @@ class EQEngine:
 
     def _save_cache_file(self) -> None:
         try:
-            CACHE_PATH.write_text(
-                json.dumps(self._cache, indent=2),
+            with self._lock:
+                cache_copy = dict(self._cache)
+            temp_path = CACHE_PATH.with_suffix(".tmp")
+            temp_path.write_text(
+                json.dumps(cache_copy, indent=2),
                 encoding="utf-8",
             )
+            # Atomic rename / replace
+            os.replace(temp_path, CACHE_PATH)
         except Exception as e:
             logging.warning(f"EQEngine: Cache save failed: {e}")
 

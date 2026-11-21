@@ -65,3 +65,4 @@ fi
 # 6. Launch Application
 echo "[INFO] Launching Application..."
 exec python main.py
+

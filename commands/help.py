@@ -43,6 +43,7 @@ def help_command(args):
         ("M!crossfade <sec|off>",  "Smooth track transition fade duration (1-10s)"),
         ("M!loop [off|one|all]",   "Loop control — off, repeat one song, or loop entire queue"),
         ("M!source [yt|ytmusic]",  "Switch search backend — yt-dlp (default) or YouTube Music API"),
+        ("M!background [npx]",     "Display ambient ASCII mood art (random or from npx ascii-magic-art)"),
         ("M!help",                 "Display this interface"),
         ("M!update",               "Pull the latest updates from the Git repository"),
         ("M!exit / M!quit / M!end","Close the application"),

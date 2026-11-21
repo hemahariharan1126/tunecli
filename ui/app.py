@@ -56,6 +56,7 @@ _COMMAND_REGISTRY = {
     "speed":         ("commands.speed", "speed"),
     "sleep":         ("commands.sleep", "sleep"),
     "crossfade":     ("commands.crossfade", "crossfade"),
+    "background":    ("commands.background", "background"),
 }
 
 class _LazyCommandDispatch(dict):
@@ -68,8 +69,22 @@ class _LazyCommandDispatch(dict):
     def __contains__(self, key):
         return key in self._registry
 
+    def __iter__(self):
+        return iter(self._registry)
+
+    def __len__(self):
+        return len(self._registry)
+
     def keys(self):
         return self._registry.keys()
+
+    def values(self):
+        """Load and return all handler functions."""
+        return [self[k] for k in self._registry]
+
+    def items(self):
+        """Load and return all (name, handler) pairs."""
+        return [(k, self[k]) for k in self._registry]
 
     def get(self, key, default=None):
         if key not in self._registry:
@@ -280,19 +295,22 @@ class TuneCLIApp(App):
             )
             return
 
-        self.run_command_worker(handler, parsed.args, parsed.name)
+        self.run_command_worker(handler, parsed.args, parsed.name, log_widget)
 
     @work(thread=True)
-    def run_command_worker(self, handler, args, name: str) -> None:
+    def run_command_worker(self, handler, args, name: str, log_widget=None) -> None:
         """Executes a command in a background thread to keep UI responsive."""
-        log_widget = self.query_one("#output_log", RichLog)
+        if log_widget is None:
+            # Fallback if invoked without passing log_widget explicitly
+            def _write(msg):
+                self.call_from_thread(lambda: self.query_one("#output_log", RichLog).write(msg))
+        else:
+            def _write(msg):
+                self.call_from_thread(log_widget.write, msg)
 
         # Immediate feedback line
         prefix = "LISTENING" if name == "find" else name.upper()
-        self.call_from_thread(
-            log_widget.write,
-            f"[dim]  ⚡ CMD → {prefix}…[/dim]",
-        )
+        _write(f"[dim]  ⚡ CMD → {prefix}…[/dim]")
 
         try:
             result = handler(args)
@@ -303,13 +321,12 @@ class TuneCLIApp(App):
                 self.call_from_thread(self._apply_theme, result["theme"])
             elif result:
                 # RichLog.write() accepts both Rich Renderables and markup strings natively
-                self.call_from_thread(log_widget.write, result)
+                _write(result)
 
             self.call_from_thread(self._update_ui)
 
         except Exception as e:
-            self.call_from_thread(
-                log_widget.write,
+            _write(
                 f"[bold red]✗  ERR:[/bold red] [dim]{name.upper()} → {e}[/dim]",
             )
 
@@ -325,13 +342,13 @@ class TuneCLIApp(App):
                 
                 if cmd_name == "play-playlist":
                     query = selected.get("query", selected['title'])
-                    self.run_command_worker(COMMAND_DISPATCH["play-playlist"], [query], "play-playlist")
+                    self.run_command_worker(COMMAND_DISPATCH["play-playlist"], [query], "play-playlist", self.query_one("#output_log", RichLog))
                 else:
                     if "query" in selected and selected["query"]:
                         query = selected["query"]
                     else:
                         query = f"{selected['title']} {selected['artist']}"
-                    self.run_command_worker(COMMAND_DISPATCH["play"], [query], "play")
+                    self.run_command_worker(COMMAND_DISPATCH["play"], [query], "play", self.query_one("#output_log", RichLog))
             else:
                 self.query_one("#output_log", RichLog).write(
                     "[dim]  ✕ Selection cancelled.[/dim]"

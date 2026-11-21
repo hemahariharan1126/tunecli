@@ -1,5 +1,6 @@
 """
 Multi-LLM Recommendation Client — Routes scenario analysis through Ollama Cloud or Gemini.
+Now modernized to support google-genai with fallback to google.generativeai.
 """
 
 import json
@@ -10,9 +11,18 @@ from config import GEMINI_API_KEY, MOOD_MAP, OLLAMA_API_KEY, OLLAMA_MODEL, OLLAM
 class RecommendationLLMClient:
     def __init__(self):
         self.gemini_configured = bool(GEMINI_API_KEY)
+        self._genai_client = None
         if self.gemini_configured:
-            import google.generativeai as genai
-            genai.configure(api_key=GEMINI_API_KEY)
+            try:
+                from google import genai
+                self._genai_client = genai.Client(api_key=GEMINI_API_KEY)
+            except Exception as e:
+                logging.debug(f"google-genai client init note: {e}")
+                try:
+                    import google.generativeai as legacy_genai
+                    legacy_genai.configure(api_key=GEMINI_API_KEY)
+                except Exception as ex:
+                    logging.warning(f"Could not configure legacy google.generativeai: {ex}")
 
     def _call_ollama(self, prompt: str) -> dict | None:
         """Call the Ollama Cloud (OpenAI-compatible chat completion) endpoint."""
@@ -22,7 +32,6 @@ class RecommendationLLMClient:
                 "Authorization": f"Bearer {OLLAMA_API_KEY}",
                 "Content-Type": "application/json"
             }
-            # Assuming an OpenAI-compatible /v1/chat/completions endpoint
             payload = {
                 "model": OLLAMA_MODEL,
                 "messages": [{"role": "user", "content": prompt}],
@@ -34,7 +43,6 @@ class RecommendationLLMClient:
             response.raise_for_status()
             
             data = response.json()
-            # Parse OpenAI-style format
             if "choices" in data and len(data["choices"]) > 0:
                 content = data["choices"][0]["message"]["content"]
                 return self._parse_json(content)
@@ -46,26 +54,33 @@ class RecommendationLLMClient:
             return None
 
     def _call_gemini(self, prompt: str) -> dict:
-        """Fallback to the Gemini rotating model pipeline."""
+        """Fallback to the Gemini rotating model pipeline using google-genai or legacy SDK."""
         if not self.gemini_configured:
             return {"error": "Both Ollama and Gemini failed. No API keys configured."}
 
         models_to_try = [
             'gemini-2.5-flash',
             'gemini-2.0-flash',
-            'gemini-3-flash-preview',
             'gemini-2.0-flash-lite',
         ]
         
         last_error = ""
         for model_name in models_to_try:
             try:
-                import google.generativeai as genai
-                current_model = genai.GenerativeModel(model_name)
                 logging.info(f"LLMClient: Routing scenario to Gemini ({model_name})")
-                response = current_model.generate_content(prompt)
+                if self._genai_client is not None:
+                    response = self._genai_client.models.generate_content(
+                        model=model_name,
+                        contents=[prompt],
+                    )
+                    text_resp = response.text
+                else:
+                    import google.generativeai as legacy_genai
+                    current_model = legacy_genai.GenerativeModel(model_name)
+                    response = current_model.generate_content(prompt)
+                    text_resp = response.text
                 
-                parsed = self._parse_json(response.text)
+                parsed = self._parse_json(text_resp)
                 if parsed:
                     return parsed
                 else:
@@ -89,6 +104,8 @@ class RecommendationLLMClient:
         text = text.strip()
         if text.startswith("```json"):
             text = text[7:]
+        if text.startswith("```"):
+            text = text[3:]
         if text.endswith("```"):
             text = text[:-3]
         

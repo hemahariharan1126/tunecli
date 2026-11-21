@@ -37,19 +37,20 @@ QUALITY_MAP: dict = {
 }
 
 # ── Cache Paths ───────────────────────────────────────────
-CACHE_DIR: str = "cache"
-SONG_FEATURES_CACHE: str = f"{CACHE_DIR}/song_features.json"
-HISTORY_CACHE: str = f"{CACHE_DIR}/history.json"
+BASE_DIR: str = os.path.dirname(os.path.abspath(__file__))
+CACHE_DIR: str = os.path.join(BASE_DIR, "cache")
+SONG_FEATURES_CACHE: str = os.path.join(CACHE_DIR, "song_features.json")
+HISTORY_CACHE: str = os.path.join(CACHE_DIR, "history.json")
 
 # ── Audio Pre-Download Cache ──────────────────────────────
 # Local disk cache for background-downloaded songs (Hybrid Playback Engine)
-AUDIO_CACHE_DIR: str = f"{CACHE_DIR}/audio"
+AUDIO_CACHE_DIR: str = os.path.join(CACHE_DIR, "audio")
 MAX_PREDOWNLOAD_SONGS: int = 3  # Max number of upcoming songs to pre-download
 
 # ── Database Paths ────────────────────────────────────────
-DATABASE_DIR: str = "database"
-SONGS_DB: str = f"{DATABASE_DIR}/songs.db"
-PREFERENCES_DB: str = f"{DATABASE_DIR}/user_preferences.db"
+DATABASE_DIR: str = os.path.join(BASE_DIR, "database")
+SONGS_DB: str = os.path.join(DATABASE_DIR, "songs.db")
+PREFERENCES_DB: str = os.path.join(DATABASE_DIR, "user_preferences.db")
 
 # ── Mood Feature Mapping ──────────────────────────────────
 MOOD_MAP: dict = {

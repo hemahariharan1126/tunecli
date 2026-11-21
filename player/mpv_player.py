@@ -3,9 +3,24 @@ MPV Player — Wrapper around python-mpv for audio playback.
 Supports direct stream URLs, local file playback, and EQ.
 """
 
-import mpv
 import logging
 from core.song import Song
+
+try:
+    import mpv
+except OSError as _mpv_dll_err:
+    # libmpv-2.dll not found — provide a human-readable diagnostic.
+    raise ImportError(
+        f"\n\n[TuneCLI] ❌ Could not load libmpv: {_mpv_dll_err}\n"
+        "  On Windows: ensure lib/libmpv-2.dll exists and the lib/ folder is on PATH.\n"
+        "  Run StartTuneCLI.bat which sets up the path automatically.\n"
+        "  On Linux/macOS: install mpv via your package manager (apt/brew/dnf).\n"
+    ) from _mpv_dll_err
+except ImportError as _mpv_import_err:
+    raise ImportError(
+        f"\n\n[TuneCLI] ❌ python-mpv not installed: {_mpv_import_err}\n"
+        "  Run: pip install python-mpv\n"
+    ) from _mpv_import_err
 
 class MPVPlayer:
     def __init__(self):
@@ -232,11 +247,13 @@ class MPVPlayer:
         """Cleanup MPV instance."""
         self.player.terminate()
 
-# Singleton instance
-player_instance = None
+# Singleton instance — lazy, created on first call to get_player()
+_player_instance: "MPVPlayer | None" = None
 
-def get_player():
-    global player_instance
-    if player_instance is None:
-        player_instance = MPVPlayer()
-    return player_instance
+
+def get_player() -> "MPVPlayer":
+    """Return the singleton MPVPlayer, creating it on first call."""
+    global _player_instance
+    if _player_instance is None:
+        _player_instance = MPVPlayer()
+    return _player_instance
