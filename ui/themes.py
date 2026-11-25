@@ -4,13 +4,14 @@ Supports runtime switching and persistence across restarts via .env.
 """
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv, set_key
-
-load_dotenv()
 
 _ROOT   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _STYLES = os.path.join(_ROOT, "ui", "styles")
 _ENV    = os.path.join(_ROOT, ".env")
+
+load_dotenv(_ENV)
 
 # ── Theme registry ───────────────────────────────────────────────────────────
 THEMES: dict[str, str] = {
@@ -27,6 +28,7 @@ THEMES: dict[str, str] = {
     "jarvis":      os.path.join(_STYLES, "jarvis.tcss"),
     "matrix":      os.path.join(_STYLES, "matrix.tcss"),
     "batman":      os.path.join(_STYLES, "batman.tcss"),
+    "spotify":     os.path.join(_STYLES, "spotify.tcss"),
     "bladerunner": os.path.join(_STYLES, "bladerunner.tcss"),
     "spiderverse": os.path.join(_STYLES, "spiderverse.tcss"),
 }
@@ -55,7 +57,21 @@ def get_theme_css(name: str) -> str:
         return f.read()
 
 
+def validate_theme_css(name: str) -> None:
+    """Validate that the theme exists and its .tcss file parses cleanly."""
+    if name not in THEMES:
+        raise ValueError(f"Unknown theme: {name!r}")
+    path = Path(get_theme_path(name))
+    if not path.is_file():
+        raise FileNotFoundError(f"Theme stylesheet not found: {path}")
+    from textual.css.stylesheet import Stylesheet
+    ss = Stylesheet()
+    ss.read(path)
+    ss.parse()
+
+
 def save_theme(name: str) -> None:
     """Persist the chosen theme to .env so it survives restarts."""
     if name in THEMES:
         set_key(_ENV, "TUNECLI_THEME", name)
+        os.environ["TUNECLI_THEME"] = name

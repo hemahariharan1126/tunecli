@@ -32,7 +32,7 @@ def help_command(args):
         ("M!radio <on|off>",       "Toggle continuous radio stream"),
         ("M!find <song>",          "Search without playing"),
         ("M!reorder <from> <to>",  "Reorder the queue (e.g., M!reorder 3 1)"),
-        ("M!theme <name>",         "Switch colour theme  [cyberpunk · jarvis · matrix · batman · spiderverse · bladerunner · dracula]"),
+        ("M!theme <name>",         "Switch colour theme  [cyberpunk · black · spotify · jarvis · matrix · batman · spiderverse · bladerunner · dracula]"),
         ("M!lang [code|reset]",    "View/override language lock  [ta · hi · te · ml · kn · en]  or reset for auto-detect"),
         ("M!eq [on|off|reset|info]","LLM-optimized per-song equalizer  [auto-applied on every track]"),
         ("M!shuffle [on|off]",     "Toggle or set shuffle playback mode (or press 's')"),

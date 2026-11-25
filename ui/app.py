@@ -20,8 +20,9 @@ from ui.components.status_bar import StatusBar
 from ui.components.logo import LogoPanel
 
 # Theme system
-from ui.themes import get_theme_css, get_theme_path, get_saved_theme
+from ui.themes import THEMES, get_theme_css, get_theme_path, get_saved_theme, save_theme
 import importlib
+import os
 
 # Lazy Command Dispatcher mapping command name to (module_name, function_name)
 _COMMAND_REGISTRY = {
@@ -164,7 +165,7 @@ class TuneCLIApp(App):
 
         # Apply saved theme on startup (hot-swap if not default)
         if self.active_theme != "cyberpunk":
-            self._apply_theme(self.active_theme, announce=False)
+            self._apply_theme(self.active_theme, announce=False, persist=False)
 
         # Welcome message
         log = self.query_one("#output_log", RichLog)
@@ -353,14 +354,32 @@ class TuneCLIApp(App):
 
         self.push_screen(SelectionModal(title, options), handle_selection)
 
-    def _apply_theme(self, name: str, announce: bool = True) -> None:
-        """Hot-swap the active CSS theme on the main thread."""
+    def _apply_theme(self, name: str, announce: bool = True, persist: bool = True) -> None:
+        """Hot-swap the active CSS theme on the main thread, persisting only on success."""
+        prev_theme = self.active_theme
+        prev_sources = dict(self.stylesheet.source)
         try:
             from pathlib import Path
             path = Path(get_theme_path(name))
+            if not path.is_file():
+                raise FileNotFoundError(f"Theme stylesheet not found: {path}")
+
+            theme_paths = {os.path.abspath(p) for p in THEMES.values()}
+            for key in list(self.stylesheet.source.keys()):
+                src_path, scope = key
+                css_src = self.stylesheet.source[key]
+                if not css_src.is_defaults and (scope == "" or os.path.abspath(src_path) in theme_paths):
+                    del self.stylesheet.source[key]
+
             self.stylesheet.read(path)
+            self.stylesheet._rules_map = None
+            self.stylesheet._require_parse = True
             self.refresh_css()
+
             self.active_theme = name
+            if persist:
+                save_theme(name)
+
             if announce:
                 log = self.query_one("#output_log", RichLog)
                 label = name.upper()
@@ -369,5 +388,13 @@ class TuneCLIApp(App):
                     f"[dim]applied & saved.[/dim]"
                 )
         except Exception as e:
+            self.stylesheet.source = prev_sources
+            self.stylesheet._rules_map = None
+            self.stylesheet._require_parse = True
+            try:
+                self.refresh_css()
+            except Exception:
+                pass
+            self.active_theme = prev_theme
             log = self.query_one("#output_log", RichLog)
             log.write(f"[bold red]✗  THEME ERR:[/bold red] [dim]{e}[/dim]")
